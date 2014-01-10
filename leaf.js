@@ -58,15 +58,23 @@ Parser.prototype = {
         directive.name = name;
         this.directives.push(directive);
     },
-    parseFile: function (path) {
-        var that = this;
-        return utils.loadFile(path).then(function (string) {
-            return that.parseString(string, utils.getBasePath(path));
-        });
+    parse: function (pathOrString, source) {
+        var that = this,
+            element;
+
+        if (pathOrString.charAt(0) === '<') {
+            element = stringToElement(pathOrString, source);
+            return transformElement(element, this);
+        } else {
+            return utils.loadFile(pathOrString).then(function (string) {
+                return that.parse(string, source || utils.getBasePath(pathOrString));
+            });
+        }
     },
-    parseString: function (string, source) {
-        var element = stringToElement(string, source);
-        return transformElement(element, this);
+    stringify: function (input, source) {
+        return this.parse(input, source).then(function (element) {
+            return element.stringify();
+        });
     }
 };
 
