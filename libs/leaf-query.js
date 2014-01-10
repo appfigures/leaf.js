@@ -3,7 +3,7 @@
 //
 
 var utils = require('./utils'),
-    libs = require('./libs');
+    libs = require('./ext');
 
 function $(arg) {
     return new $.prototype.init(arg);
@@ -178,11 +178,6 @@ function combineAttributes(dst, src) {
     return values.join(' ');
 }
 
-function createDocumentFragment () {
-    var document = $('<dummy />')[0].ownerDocument;
-    return document.createDocumentFragment();
-}
-
 // Keeps the src intact
 // Method params are plain nodes
 (function () {
@@ -235,7 +230,6 @@ function createDocumentFragment () {
                 dst.setAttribute(name, newValue);
             });
         }
-
         
         // Replace the contentPlaceholder with the children
         childrenFragment = createDocumentFragment();
@@ -248,7 +242,6 @@ function createDocumentFragment () {
         }
 
         // TODO: What to call the placeholder tag?
-        //contentPlaceholder = dst.getElementsByTagName('af-content')[0];
         contentPlaceholder = dst.getElementsByTagName('content')[0];
 
         if (contentPlaceholder) {
@@ -257,6 +250,11 @@ function createDocumentFragment () {
             dst.appendChild(childrenFragment);
         }
     };
+
+    function createDocumentFragment () {
+        var document = $('<dummy />')[0].ownerDocument;
+        return document.createDocumentFragment();
+    }
 }());
 
 module.exports = $;
