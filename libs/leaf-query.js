@@ -163,7 +163,6 @@ utils.extend($.fn, {
     }
 });
 
-// TODO: Organize these
 function combineAttributes(dst, src) {
     var value = dst || '',
         values = [];
