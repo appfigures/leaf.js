@@ -7,16 +7,16 @@ A tiny XML transformation library with recursive evaluation for Node and the bro
 
 Turn this xml:
 
-	<person>Oz</person>
+	<person data-title="Mr.">Potter</person>
 	
 Into this one:
 
-	<h1 class="person-header">Hi Oz!</h1>
+	<h1 class="person-header">Hi Mr.Potter</h1>
 
 Using this js:
 
 	parser.directive('person', {
-		template: '<h1 class="person-header">Hi <content /></h1>
+		template: '<h1 class="person-header">Hi {{title}}<content /></h1>
 	});
 	
 ## Features
