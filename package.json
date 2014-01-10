@@ -1,7 +1,7 @@
 {
   "name": "leaf",
   "version": "0.0.1",
-  "description": "A Tiny XML Transformation Library",
+  "description": "A Tiny, Impreative XML Transformation Library",
   "main": "leaf.js",
   "repository" : {
     "type" : "git",
