@@ -15,9 +15,11 @@ Into this one:
 
 Using this js:
 
+	var parser = new leaf.Parser();
 	parser.directive('person', {
 		template: '<h1 class="person-header">Hi {{title}}<content /></h1>
 	});
+	console.log(parser.parse('input.html'));
 	
 ## Features
 
