@@ -1,5 +1,5 @@
-leaf
-====
+leaf (alpha)
+=======
 
 A tiny XML transformation library with recursive evaluation for Node and the browser. Useful for generating email html and text, among other things. Loosely inspired by the Angular.js interface.
 
