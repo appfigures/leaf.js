@@ -67,3 +67,20 @@ Run this javascript:
 	// Then elsewhere
 	
 	var parser = new leaf.Parser(['myModule']);
+	
+	
+## Using globals
+
+	parser.globals.containerWidth = 100;
+	
+	parser.directive('container', {
+		template: '<table width="{{width}}"/>',
+		context: function (parser) {
+			return {
+				width: parser.globals.width
+			}
+		}
+	});
+
+	// <container /> --> <table width="100"/>
+	// <container width="300"> --> <table width="300"/>
