@@ -23,11 +23,11 @@ Using this js:
 
 - Recursive template expansion
 - Smart tag merging
-- Output your semantic XML to HTML or plain text
-- Easily define custom element logic
+- Define custom element logic imperatively
 - Asyncronous parsing using promises for including async logic
 - Extendible through modules
 - Includes basic DOM manipulation with jQuery-like API
+- Output your semantic XML to HTML or plain text (TBD)
 
 ## Getting started
 
