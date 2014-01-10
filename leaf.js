@@ -2,7 +2,7 @@
 // bloom.js?
 // blossom.js?
 
-var q = require('q'),
+var Q = require('q'),
     $ = require('./libs/leaf-query'),
     utils = require('./libs/utils'),
     leaf = {
@@ -90,7 +90,7 @@ function transformElement(element, parser, directiveToIgnore) {
         //  Create the new node from the
         //  directive's template, or use
         //  the existing node
-        return q(directive.prepare(context, element))
+        return Q(directive.prepare(context, element))
             .then(function () {
                 return directive.parseTemplate(context);
             })
@@ -107,7 +107,7 @@ function transformElement(element, parser, directiveToIgnore) {
                 }
 
                 //  Run the directive's logic
-                return q(directive.logic(newElement, context, parser))
+                return Q(directive.logic(newElement, context, parser))
                     .then(function () {
                         if (leaf.debug) {
                             // Keep a record of the directives applied
@@ -124,7 +124,7 @@ function transformElement(element, parser, directiveToIgnore) {
             });
     } else {
         // Compile all the children
-        return q.all(utils.map(element.children(), function (child) {
+        return Q.all(utils.map(element.children(), function (child) {
             return transformElement($(child), parser);
         })).then(function () {
             return element;
@@ -211,10 +211,10 @@ Directive.prototype = {
 //   source: string of base url
 // }
 function resolveTemplate(template, source) {
-    if (!template) return q(null);
+    if (!template) return Q(null);
 
     if (utils.isFunction(template)) {
-        return q({
+        return Q({
             fn: template,
             source: source
         });
@@ -230,7 +230,7 @@ function resolveTemplate(template, source) {
         });
     }
 
-    return q.reject('template ' + template + ' is not a valid type');
+    return Q.reject('template ' + template + ' is not a valid type');
 }
 
 //
