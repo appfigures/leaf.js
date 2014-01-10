@@ -11,11 +11,7 @@ var q = require('q'),
         $: $,
         debug: false,
         ext: require('./libs/ext'), // Can be set by user
-
-        // Utils
-        extend: utils.extend,
-        setBasePath: utils.setBasePath,
-        getBasePath: utils.getBasePath
+        utils: utils
     };
 
 // $ plugin
@@ -64,7 +60,7 @@ Parser.prototype = {
     },
     parseFile: function (path) {
         var that = this;
-        return loadFile(path).then(function (string) {
+        return utils.loadFile(path).then(function (string) {
             return that.parseString(string, utils.getBasePath(path));
         });
     },
@@ -99,9 +95,7 @@ function transformElement(element, parser, directiveToIgnore) {
                 return directive.parseTemplate(context);
             })
             .then(function (newElement) {
-                // console.log('transforming', element[0].tagName, 'into', newElement[0].tagName);
                 if (newElement) {
-
                     //  Merge the attributes and children from
                     //  the originalNode into the newNode
                     $.mergeElements(newElement[0], element[0], directive.mergeOptions);
@@ -115,7 +109,6 @@ function transformElement(element, parser, directiveToIgnore) {
                 //  Run the directive's logic
                 return q(directive.logic(newElement, context, parser))
                     .then(function () {
-
                         if (leaf.debug) {
                             // Keep a record of the directives applied
                             // to this node
@@ -229,7 +222,7 @@ function resolveTemplate(template, source) {
         if (template.charAt(0) === '<') {
             return resolveTemplate(leaf.ext.templateCompiler(template), source);
         } else {
-            return resolveTemplate(loadFile(template), utils.getBasePath(template));
+            return resolveTemplate(utils.loadFile(template), utils.getBasePath(template));
         }
     } else if (template.then) {
         return template.then(function (data) {
@@ -240,19 +233,10 @@ function resolveTemplate(template, source) {
     return q.reject('template ' + template + ' is not a valid type');
 }
 
-// TODO: Move this
-// TODO: Cache files
-function loadFile(path) {
-    // var deferred = q.defer();
-    // require('fs').readFile(path, deferred.makeNodeResolver());
-    // return deferred.promise.then(function (data) {
-    //     return data.toString();
-    // });
-    return q(require('fs').readFileSync(path).toString());
-}
+//
+// Export
+//
 
-
-// ext
 leaf.ext.DOMParser = require('xmldom').DOMParser;
 leaf.ext.XMLSerializer = require('xmldom').XMLSerializer;
 

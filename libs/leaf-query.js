@@ -208,6 +208,7 @@ function combineAttributes(dst, src) {
                 var name = attribute.name,
                     opFn, newValue;
 
+                // TODO: Expose this functionality
                 if (name.indexOf('data-') === 0) return;
 
                 // If there's a conflict, try to resolve it
@@ -218,10 +219,6 @@ function combineAttributes(dst, src) {
                     if (!utils.isFunction(opFn)) throw 'mergeElements: Operation not defined: ' + options.attributes[name];
 
                     newValue = opFn(dst.getAttribute(name), attribute.value);
-
-                    // if (options.attributes[name] === 'combine') {
-                    //     console.log(name + ':', dst.getAttribute(name), '+', attribute.value, '=',newValue);
-                    // }
                 } else {
                     // Otherwise just copy the attribute over
                     newValue = attribute.value;
@@ -230,7 +227,7 @@ function combineAttributes(dst, src) {
                 dst.setAttribute(name, newValue);
             });
         }
-        
+
         // Replace the contentPlaceholder with the children
         childrenFragment = createDocumentFragment();
         cNode = src.firstChild;

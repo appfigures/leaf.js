@@ -1,4 +1,5 @@
-var utils = {
+var Q = require('q'),
+utils = {
 	forEach: function (obj, fn) {
         var key;
         if (obj == null || !fn) return;
@@ -67,7 +68,23 @@ var utils = {
 		if (base.charAt(base.length - 1) !== delimiter) base += delimiter;
 
 		return base + path;
-	}
+	},
+    loadFile: (function () {
+        var cache = {};
+        return function (path) {
+            if (cache[path]) {
+                return Q(cache[path]);
+            }
+
+            var deferred = Q.defer();
+            require('fs').readFile(path, deferred.makeNodeResolver());
+            return deferred.promise.then(function (data) {
+                data = data.toString();
+                cache[path] = data;
+                return data;
+            });
+        };
+    }())
 };
 
 module.exports = utils;
