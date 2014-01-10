@@ -28,6 +28,7 @@ Using this js:
 - Extendible through modules
 - Includes basic DOM manipulation with jQuery-like API
 - Output your semantic XML to HTML or plain text (TBD)
+- Runs in Node and the browser (TBD)
 
 ## Getting started
 
