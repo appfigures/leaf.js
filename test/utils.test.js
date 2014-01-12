@@ -41,6 +41,14 @@ describe('utils', function () {
     });
 
     describe('getBasePath', function () {
-        
-    })
+        it('should work with abs paths', function () {
+            utils.getBasePath('/absolute').should.equal('/');
+        });
+        it('should work with just path', function () {
+            utils.getBasePath('path/to/file/').should.equal('path/to/file/');
+        });
+        it('should work with relative path', function () {
+            utils.getBasePath('path/to/file').should.equal('path/to/');
+        });
+    });
 });

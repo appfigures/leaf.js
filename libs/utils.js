@@ -55,8 +55,11 @@ utils = {
 
 		if (index < 0) return '';
 
+        // File sitting in the root
+        if (index === 0) return '/';
+
 		// If the last '/' isn't in the middle, it's a dir
-		if (index === 0 || index === path.length - 1) return path;
+		if (index === path.length - 1) return path;
 
 		return path.substring(0, index);
 	},
