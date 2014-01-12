@@ -3,15 +3,16 @@
   "version": "0.0.1",
   "description": "A Tiny, Impreative XML Transformation Library",
   "main": "leaf.js",
-  "repository" : {
-    "type" : "git",
-    "url" : "http://github.com/appfigures/leaf.git"
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/appfigures/leaf.git"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
-    "xml", "transformation"
+    "xml",
+    "transformation"
   ],
   "author": "Oz Michaeli (appFigures)",
   "license": "MIT",
@@ -21,5 +22,12 @@
   },
   "optionalDependencies": {
     "handlebars": "~1.2.1"
+  },
+  "devDependencies": {
+    "grunt": "~0.4.2",
+    "grunt-contrib-jshint": "~0.8.0",
+    "grunt-contrib-watch": "~0.5.3",
+    "grunt-mocha-test": "~0.8.1",
+    "chai": "~1.8.1"
   }
 }
