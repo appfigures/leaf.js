@@ -58,21 +58,24 @@ Parser.prototype = {
         directive.name = name;
         this.directives.push(directive);
     },
-    parse: function (pathOrString, source) {
+    // Doesn't use the cache by default
+    parse: function (pathOrString, source, useCache) {
         var that = this,
             element;
+
+        if (useCache === undefined) useCache = false;
 
         if (pathOrString.charAt(0) === '<') {
             element = stringToElement(pathOrString, source);
             return transformElement(element, this);
         } else {
-            return utils.loadFile(pathOrString).then(function (string) {
+            return utils.loadFile(pathOrString, useCache).then(function (string) {
                 return that.parse(string, source || utils.getBasePath(pathOrString));
             });
         }
     },
-    stringify: function (input, source) {
-        return this.parse(input, source).then(function (element) {
+    stringify: function (input, source, useCache) {
+        return this.parse(input, source, useCache).then(function (element) {
             return element.stringify();
         });
     }
