@@ -67,6 +67,20 @@ utils.extend($.fn, {
 
         return children;
     },
+    append: function (item) {
+        return this.each(function (el) {
+            $(item).each(function (itemEl) {
+                el.appendChild(itemEl);
+            });
+        });
+    },
+    remove: function () {
+        return this.each(function (el) {
+            if (el.parentNode) {
+                el.parentNode.removeChild(el);
+            }
+        });
+    },
     children: function () {
         var children = $();
 
@@ -98,6 +112,9 @@ utils.extend($.fn, {
     },
     addClass: function (className) {
         return this.addToAttribute('class', className);
+    },
+    first: function () {
+        return $(this[0]);
     },
     last: function () {
         return $(this[this.length - 1]);
