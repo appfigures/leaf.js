@@ -1,5 +1,6 @@
-var Q = require('q'),
-utils = {
+var toDashCaseRegexp = /([A-Z])/g;
+
+var utils = {
 	forEach: function (obj, fn) {
         var key;
         if (obj == null || !fn) return;
@@ -28,7 +29,7 @@ utils = {
     },
     toDashCase: function (string, separator) {
         separator = separator || '-';
-        return string.replace(/([A-Z])/g, function($1){return separator + $1.toLowerCase();});
+        return string.replace(toDashCaseRegexp, function($1){return separator + $1.toLowerCase();});
     },
     isNumber: function (str) {
         return !isNaN(parseFloat(str)) && isFinite(str);
@@ -77,16 +78,21 @@ utils = {
         if (useCache === undefined) useCache = true;
 
         if (useCache && cache[path]) {
-            return Q(cache[path]);
+            return cache[path];
         }
 
-        var deferred = Q.defer();
-        require('fs').readFile(path, deferred.makeNodeResolver());
-        return deferred.promise.then(function (data) {
-            data = data.toString();
-            cache[path] = data;
-            return data;
-        });
+        var content = require('fs').readFileSync(path);
+
+        if (!content) throw 'File ' + path + ' not found';
+
+        content = content.toString();
+        cache[path] = content;
+        return content;
+        // return deferred.promise.then(function (data) {
+        //     data = data.toString();
+        //     cache[path] = data;
+        //     return data;
+        // });
     }
 };
 

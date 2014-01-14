@@ -2,8 +2,7 @@
 // bloom.js?
 // blossom.js?
 
-var Q = require('q'),
-    $ = require('./libs/leaf-query'),
+var $ = require('./libs/leaf-query'),
     utils = require('./libs/utils'),
     leaf = {
         modules: [],
@@ -69,15 +68,13 @@ Parser.prototype = {
             element = stringToElement(pathOrString, source);
             return transformElement(element, this);
         } else {
-            return utils.loadFile(pathOrString, useCache).then(function (string) {
-                return that.parse(string, source || utils.getBasePath(pathOrString));
-            });
+            var string = utils.loadFile(pathOrString, useCache);
+            return this.parse(string, source || utils.getBasePath(pathOrString));
         }
     },
     stringify: function (input, source, useCache) {
-        return this.parse(input, source, useCache).then(function (element) {
-            return element.stringify();
-        });
+        var element = this.parse(input, source, useCache);
+        return element.stringify();
     }
 };
 
@@ -101,45 +98,40 @@ function transformElement(element, parser, directiveToIgnore) {
         //  Create the new node from the
         //  directive's template, or use
         //  the existing node
-        return Q(directive.prepare(context, element))
-            .then(function () {
-                return directive.parseTemplate(context);
-            })
-            .then(function (newElement) {
-                if (newElement) {
-                    //  Merge the attributes and children from
-                    //  the originalNode into the newNode
-                    $.mergeElements(newElement[0], element[0], directive.mergeOptions);
+        directive.prepare(context, element);
+        var newElement = directive.parseTemplate(context);
 
-                    // Replace the element in its parent
-                    element.replaceWith(newElement);
-                } else {
-                    newElement = element;
-                }
+        if (newElement) {
+            //  Merge the attributes and children from
+            //  the originalNode into the newNode
+            $.mergeElements(newElement[0], element[0], directive.mergeOptions);
 
-                //  Run the directive's logic
-                return Q(directive.logic(newElement, context, parser))
-                    .then(function () {
-                        if (leaf.debug) {
-                            // Keep a record of the directives applied
-                            // to this node
-                            var dir = newElement[0].getAttribute('af-directive');
-                            dir = dir ? dir + ' ' : '';
-                            newElement[0].setAttribute('af-directive', dir + directive.name);
-                        }
+            // Replace the element in its parent
+            element.replaceWith(newElement);
+        } else {
+            newElement = element;
+        }
 
-                        // Run the new node through the compiler again, ignoring
-                        // the matched directive
-                        return transformElement(newElement, parser, directive);
-                    });
-            });
+        //  Run the directive's logic
+        directive.logic(newElement, context, parser);
+
+        if (leaf.debug) {
+            // Keep a record of the directives applied
+            // to this node
+            var dir = newElement[0].getAttribute('af-directive');
+            dir = dir ? dir + ' ' : '';
+            newElement[0].setAttribute('af-directive', dir + directive.name);
+        }
+
+        // Run the new node through the compiler again, ignoring
+        // the matched directive
+        return transformElement(newElement, parser, directive);
     } else {
         // Compile all the children
-        return Q.all(utils.map(element.children(), function (child) {
-            return transformElement($(child), parser);
-        })).then(function () {
-            return element;
+        element.children().each(function (child) {
+            transformElement($(child), parser);
         });
+        return element;
     }
 }
 function getMatchingDirective(el, parser, directiveToIgnore) {
@@ -192,15 +184,18 @@ Directive.prototype = {
 
     // Compile my template into a node
     parseTemplate: function (context) {
-        var that = this;
-        return resolveTemplate(this.template)
-            .then(function (template) {
-                var markup;
-                if (template) {
-                    markup = template.fn(context);
-                    return stringToElement(markup, that.source || template.source);
-                }
-            });
+        var resolvedTemplate = templateCache[this.name];
+        if (!resolvedTemplate) {
+            resolvedTemplate = resolveTemplate(this.template);
+            templateCache[this.name] = resolvedTemplate;
+        }
+
+        var markup;
+        if (resolvedTemplate) {
+            markup = resolvedTemplate.fn(context);
+            return stringToElement(markup, this.source || resolvedTemplate.source);
+        }
+        return null;
     },
 
     //
@@ -216,32 +211,30 @@ Directive.prototype = {
     }
 };
 
+var templateCache = {};
+
 // Returns a promise which resolves to
 // {
 //   fn: templateFunction
 //   source: string of base url
 // }
 function resolveTemplate(template, source) {
-    if (!template) return Q(null);
+    if (!template) return null;
 
     if (utils.isFunction(template)) {
-        return Q({
+        return {
             fn: template,
             source: source
-        });
+        };
     } else if (typeof template === 'string') {
         if (template.charAt(0) === '<') {
             return resolveTemplate(leaf.ext.templateCompiler(template), source);
         } else {
             return resolveTemplate(utils.loadFile(template), utils.getBasePath(template));
         }
-    } else if (template.then) {
-        return template.then(function (data) {
-            return resolveTemplate(data, source);
-        });
     }
 
-    return Q.reject('template ' + template + ' is not a valid type');
+    throw 'template ' + template + ' is not a valid type';
 }
 
 //
