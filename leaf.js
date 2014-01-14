@@ -31,6 +31,27 @@ var $ = require('./libs/leaf-query'),
 }());
 
 //
+// ProcessChain
+//
+
+function ProcessChain () {
+    this.fns = [];
+}
+ProcessChain.prototype = {
+    fns: null,
+    process: function (obj) {
+        utils.forEach(this.fns, function (fn) {
+            var out = fn(obj);
+            if (out !== undefined) obj = out;
+        });
+        return obj;
+    },
+    add: function (fn) {
+        this.fns.push(fn);
+    }
+};
+
+//
 // Parser
 //
 
@@ -39,6 +60,11 @@ function Parser(modules) {
 
     this.globals = {};
     this.directives = [];
+
+    this.transforms = {
+        rawElement: new ProcessChain(),
+        string: new ProcessChain()
+    };
 
     utils.forEach(modules, function (moduleName) {
         module = leaf.modules[moduleName];
@@ -52,6 +78,7 @@ function Parser(modules) {
 Parser.prototype = {
     globals: null,
     directives: null,
+    transforms: null,
     directive: function (name, props) {
         var directive = new Directive(props);
         directive.name = name;
@@ -59,22 +86,26 @@ Parser.prototype = {
     },
     // Doesn't use the cache by default
     parse: function (pathOrString, source, useCache) {
-        var that = this,
-            element;
+        var element, content;
 
         if (useCache === undefined) useCache = false;
 
         if (pathOrString.charAt(0) === '<') {
             element = stringToElement(pathOrString, source);
-            return transformElement(element, this);
+            element = this.transforms.rawElement.process(element);
+            element = transformElement(element, this);
+            return element;
         } else {
-            var string = utils.loadFile(pathOrString, useCache);
-            return this.parse(string, source || utils.getBasePath(pathOrString));
+            content = utils.loadFile(pathOrString, useCache);
+            return this.parse(content, source || utils.getBasePath(pathOrString));
         }
     },
     stringify: function (input, source, useCache) {
-        var element = this.parse(input, source, useCache);
-        return element.stringify();
+        var element = this.parse(input, source, useCache),
+            string = element.stringify();
+
+        string = this.transforms.string.process(string);
+        return string;
     }
 };
 
