@@ -74,8 +74,10 @@ utils = {
 	},
     loadFile: (function () {
         var cache = {};
-        return function (path) {
-            if (cache[path]) {
+        return function (path, useCache) {
+            if (useCache === undefined) useCache = true;
+
+            if (useCache && cache[path]) {
                 return Q(cache[path]);
             }
 
