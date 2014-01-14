@@ -4,10 +4,12 @@
 
 var $ = require('./libs/leaf-query'),
     utils = require('./libs/utils'),
+    cache = require('./libs/cache'),
     leaf = {
         modules: [],
         Parser: Parser,
         $: $,
+        cache: cache,
         debug: false,
         ext: require('./libs/ext'), // Can be set by user
         utils: utils
@@ -85,10 +87,8 @@ Parser.prototype = {
         this.directives.push(directive);
     },
     // Doesn't use the cache by default
-    parse: function (pathOrString, source, useCache) {
+    parse: function (pathOrString, source) {
         var element, content;
-
-        if (useCache === undefined) useCache = false;
 
         if (pathOrString.charAt(0) === '<') {
             element = stringToElement(pathOrString, source);
@@ -96,12 +96,12 @@ Parser.prototype = {
             element = transformElement(element, this);
             return element;
         } else {
-            content = utils.loadFile(pathOrString, useCache);
+            content = utils.loadFile(pathOrString);
             return this.parse(content, source || utils.getBasePath(pathOrString));
         }
     },
-    stringify: function (input, source, useCache) {
-        var element = this.parse(input, source, useCache),
+    stringify: function (input, source) {
+        var element = this.parse(input, source),
             string = element.stringify();
 
         string = this.transforms.string.process(string);
@@ -215,7 +215,9 @@ Directive.prototype = {
 
     // Compile my template into a node
     parseTemplate: function (context) {
-        var resolvedTemplate = templateCache[this.name];
+        var templateCache = cache.$get('template'),
+            resolvedTemplate = templateCache[this.name];
+
         if (!resolvedTemplate) {
             resolvedTemplate = resolveTemplate(this.template);
             templateCache[this.name] = resolvedTemplate;
@@ -242,8 +244,6 @@ Directive.prototype = {
     }
 };
 
-var templateCache = {};
-
 // Returns a promise which resolves to
 // {
 //   fn: templateFunction
@@ -259,6 +259,7 @@ function resolveTemplate(template, source) {
         };
     } else if (typeof template === 'string') {
         if (template.charAt(0) === '<') {
+            if (leaf.debug) console.log('compiling template', source);
             return resolveTemplate(leaf.ext.templateCompiler(template), source);
         } else {
             return resolveTemplate(utils.loadFile(template), utils.getBasePath(template));

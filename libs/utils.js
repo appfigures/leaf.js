@@ -1,6 +1,8 @@
-var toDashCaseRegexp = /([A-Z])/g;
+var toDashCaseRegexp = /([A-Z])/g,
+    cache = require('./cache'),
+    utils;
 
-var utils = {
+utils = {
 	forEach: function (obj, fn) {
         var key;
         if (obj == null || !fn) return;
@@ -73,29 +75,22 @@ var utils = {
 
 		return base + path;
 	},
-    loadFile: function (path, useCache) {
-        var cache = utils.loadFile.cache;
-        if (useCache === undefined) useCache = true;
-
-        if (useCache && cache[path]) {
-            return cache[path];
+    loadFile: function (path) {
+        var fileCache = cache.$get('file');
+        if (fileCache[path]) {
+            return fileCache[path];
         }
+
+        // console.log('loading file', path);
 
         var content = require('fs').readFileSync(path);
 
         if (!content) throw 'File ' + path + ' not found';
 
         content = content.toString();
-        cache[path] = content;
+        fileCache[path] = content;
         return content;
-        // return deferred.promise.then(function (data) {
-        //     data = data.toString();
-        //     cache[path] = data;
-        //     return data;
-        // });
     }
 };
-
-utils.loadFile.cache = {};
 
 module.exports = utils;
