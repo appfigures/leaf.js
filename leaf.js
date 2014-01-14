@@ -277,7 +277,7 @@ leaf.ext.DOMParser = require('xmldom').DOMParser;
 leaf.ext.XMLSerializer = require('xmldom').XMLSerializer;
 
 try {
-    leaf.ext.templateCompiler = require('handlebars').compile;
+    leaf.ext.templateCompiler = require('underscore').template;
 } catch (e) {}
 
 module.exports = leaf;
