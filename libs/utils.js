@@ -72,24 +72,24 @@ utils = {
 
 		return base + path;
 	},
-    loadFile: (function () {
-        var cache = {};
-        return function (path, useCache) {
-            if (useCache === undefined) useCache = true;
+    loadFile: function (path, useCache) {
+        var cache = utils.loadFile.cache;
+        if (useCache === undefined) useCache = true;
 
-            if (useCache && cache[path]) {
-                return Q(cache[path]);
-            }
+        if (useCache && cache[path]) {
+            return Q(cache[path]);
+        }
 
-            var deferred = Q.defer();
-            require('fs').readFile(path, deferred.makeNodeResolver());
-            return deferred.promise.then(function (data) {
-                data = data.toString();
-                cache[path] = data;
-                return data;
-            });
-        };
-    }())
+        var deferred = Q.defer();
+        require('fs').readFile(path, deferred.makeNodeResolver());
+        return deferred.promise.then(function (data) {
+            data = data.toString();
+            cache[path] = data;
+            return data;
+        });
+    }
 };
+
+utils.loadFile.cache = {};
 
 module.exports = utils;
