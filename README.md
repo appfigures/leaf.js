@@ -78,9 +78,9 @@ Run this javascript:
 	
 	parser.directive('container', {
 		template: '<table width="{{width}}"/>',
-		context: function (parser) {
+		context: function (globals) {
 			return {
-				width: parser.globals.width
+				width: globals.width
 			}
 		}
 	});

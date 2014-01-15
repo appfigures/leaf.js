@@ -2,6 +2,7 @@ var utils = require('./utils'),
     globals = require('./globals'),
     $ = require('./query'),
     Directive = require('./directive');
+    // Context = require('./context');
 
 //
 // ProcessChain
@@ -82,7 +83,7 @@ Parser.prototype = {
 };
 
 // Parser internals
-function transformElement(element, parser, directiveToIgnore) {
+function transformElement(element, parser, parentContext, directiveToIgnore) {
 
     // Get matching directive
     var directive = getMatchingDirective(element, parser, directiveToIgnore),
@@ -95,8 +96,8 @@ function transformElement(element, parser, directiveToIgnore) {
         elementAttrs = element.getAttributes();
 
         context = directive.context;
-        context = utils.isFunction(context) ? context(parser) : context;
-        context = utils.extend({}, context, elementAttrs);
+        context = utils.isFunction(context) ? context(parser.globals) : context;
+        context = utils.extend({}, context, elementAttrs, parentContext);
 
         //  Create the new node from the
         //  directive's template, or use
@@ -128,7 +129,7 @@ function transformElement(element, parser, directiveToIgnore) {
 
         // Run the new node through the compiler again, ignoring
         // the matched directive
-        return transformElement(newElement, parser, directive);
+        return transformElement(newElement, parser, context, directive);
     } else {
         // Compile all the children
         element.children().each(function (child) {
