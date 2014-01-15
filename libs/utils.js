@@ -1,4 +1,5 @@
 var toDashCaseRegexp = /([A-Z])/g,
+    globals = require('./globals'),
     cache = require('./cache'),
     utils;
 
@@ -81,7 +82,9 @@ utils = {
             return fileCache[path];
         }
 
-        // console.log('loading file', path);
+        if (globals.debug) {
+            console.log('loading file', path);
+        }
 
         var content = require('fs').readFileSync(path);
 
