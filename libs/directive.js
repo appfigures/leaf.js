@@ -13,9 +13,7 @@ function Directive (params) {
 Directive.prototype = {
     // Camel case name
     name: null,
-    // A string to be compiled, a url, or a function, or
-    // a promise that returns one of the supported
-    // types.
+    // An xml string, a url, or a function
     template: null,
     // The default context hash
     // or a function that returns an object (parser) => {}
