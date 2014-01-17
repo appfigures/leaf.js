@@ -3,7 +3,9 @@
 //
 
 var utils = require('./utils'),
-    libs = require('./ext');
+    libs = require('./ext'),
+    combineAttributesRegexp = /\S+/gi,
+    transformAttributeRegexp = /^(data|x)\-/i;
 
 function $(arg) {
     return new $.prototype.init(arg);
@@ -142,7 +144,7 @@ utils.extend($.fn, {
         // Overridable
         function transformAttributeName (name) {
             // Remove data-, x- and convert to camel case.
-            name = name.replace(/^(data|x)\-/i, '');
+            name = name.replace(transformAttributeRegexp, '');
             return utils.toCamelCase(name);
         }
         function evalExp(exp) {
@@ -194,7 +196,7 @@ function combineAttributes(dst, src) {
         values = [];
 
     // Split on whitespace
-    value.replace(/\S+/gi, function (value) {
+    value.replace(combineAttributesRegexp, function (value) {
         values.push(value);
     });
 

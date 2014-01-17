@@ -1,6 +1,8 @@
-var toDashCaseRegexp = /([A-Z])/g,
-    globals = require('./globals'),
+var globals = require('./globals'),
     cache = require('./cache'),
+    trimRegexp = /^[\ \t\r\n]+|[\ \t\r\n]+$/ig,
+    toCamelCaseRegexp = /(\-[a-z])/g,
+    toDashCaseRegexp = /([A-Z])/g,
     utils;
 
 utils = {
@@ -28,7 +30,7 @@ utils = {
         return (obj instanceof Array) || (typeof obj !== 'string' && typeof obj.length === 'number');
     },
     trim: function (string) {
-        return string.replace(/^[\ \t\r\n]+|[\ \t\r\n]+$/ig, '');
+        return string.replace(trimRegexp, '');
     },
     toDashCase: function (string, separator) {
         separator = separator || '-';
@@ -41,9 +43,8 @@ utils = {
         var getType = {};
         return value && getType.toString.call(value) === '[object Function]';
     },
-    toCamelCase: function (string, separator) {
-        separator = separator || '-';
-        return string.replace(/(\-[a-z])/g, function($1){return $1.toUpperCase().replace(separator,'');});
+    toCamelCase: function (string) {
+        return string.replace(toCamelCaseRegexp, function($1){return $1.toUpperCase().replace('-','');});
     },
     extend: function (dst) {
         utils.forEach(Array.prototype.slice.call(arguments, 1), function (src) {
