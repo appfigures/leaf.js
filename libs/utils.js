@@ -28,7 +28,7 @@ utils = {
         return (obj instanceof Array) || (typeof obj !== 'string' && typeof obj.length === 'number');
     },
     trim: function (string) {
-        return string.replace(/[\ \t\r\n]+/ig, '');
+        return string.replace(/^[\ \t\r\n]+|[\ \t\r\n]+$/ig, '');
     },
     toDashCase: function (string, separator) {
         separator = separator || '-';
