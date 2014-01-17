@@ -36,7 +36,8 @@ function Parser(modules) {
     this.directives = [];
 
     this.transforms = {
-        rawElement: new ProcessChain(),
+        pre: new ProcessChain(),
+        post: new ProcessChain(),
         string: new ProcessChain()
     };
 
@@ -65,8 +66,9 @@ Parser.prototype = {
         if (pathOrString.charAt(0) === '<') {
             element = $(pathOrString);
             element.source(source);
-            element = this.transforms.rawElement.process(element);
+            element = this.transforms.pre.process(element);
             element = transformElement(element, this);
+            element = this.transforms.post.process(element);
             return element;
         } else {
             content = utils.loadFile(pathOrString);
