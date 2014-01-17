@@ -17,9 +17,9 @@ $.fn = $.prototype = {
             // Parse it
             var parser = new libs.DOMParser({
                 errorHandler: {
-                    warning: function (e) {throw 'DOMParser warning: ' + e.message;},
-                    error: function (e) {throw 'DOMParser error: ' + e.message;},
-                    fatalError: function (e) {throw 'DOMParser fatalError: ' + e.message;}
+                    warning: function (e) {throw 'DOMParser warning: ' + e + '\n' + arg;},
+                    error: function (e) {throw 'DOMParser error: ' + e + '\n' + arg;},
+                    fatalError: function (e) {throw 'DOMParser fatalError: ' + e + '\n' + arg;}
                 }
             });
             var root = parser.parseFromString('<div>' + arg + '</div>', 'text/xml').documentElement;

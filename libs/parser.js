@@ -70,7 +70,7 @@ Parser.prototype = {
             return element;
         } else {
             content = utils.loadFile(pathOrString);
-            return this.parse(content, source || utils.getBasePath(pathOrString));
+            return this.parse(content, source || pathOrString);
         }
     },
     stringify: function (input, source) {

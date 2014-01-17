@@ -1,7 +1,7 @@
 var globals = require('./globals'),
     utils = require('./utils'),
     $ = require('./query'),
-    cache = require('./cache');
+    templates = require('./templates');
 
 //
 // Directive
@@ -18,9 +18,10 @@ Directive.prototype = {
     // The default context hash
     // or a function that returns an object (parser) => {}
     context: null,
-    // Optional string specifying the base url of
-    // all the resources linked to from this directive.
-    // If the template is an external file, its base path is used
+    // Optional string specifying the url of
+    // the file this directive is based on. This is used to
+    // resolve any relative urls.
+    // If the template is an external file, its path is used
     // unless a source is specified here.
     source: null,
     // Optional options to pass to the mergeElements function
@@ -36,22 +37,28 @@ Directive.prototype = {
 
     // Compile my template into a node
     parseTemplate: function (context) {
-        var templateCache = cache.$get('template'),
-            resolvedTemplate = templateCache[this.name],
-            element;
+        var templateName = 'directive-template:' + this.name,
+            template = templates.get(templateName),
+            element, source;
 
-        if (!resolvedTemplate) {
-            resolvedTemplate = resolveTemplate(this.template);
-            templateCache[this.name] = resolvedTemplate;
+        if (!template) {
+            template = templates.put(templateName, resolveTemplate(this.template));
         }
 
-        if (resolvedTemplate) {
-            element = resolvedTemplate.fn(context);
+        if (template) {
+            if (typeof this.template === 'string' && this.template.charAt(0) !== '<') {
+                // Assume it's a url
+                source = this.template;
+            }
+
+            element = template(context);
+            // TODO: Error check
             element = $(element);
-            element.source(this.source || resolvedTemplate.source);
+            element.source(this.source || source);
 
             return element;
         }
+
         return null;
     },
 
@@ -68,29 +75,21 @@ Directive.prototype = {
     }
 };
 
-// Returns
-// {
-//   fn: templateFunction
-//   source: string of base url
-// }
-function resolveTemplate(template, source) {
+// Returns a template function or a string to compile
+function resolveTemplate(template) {
     if (!template) return null;
 
-    if (utils.isFunction(template)) {
-        return {
-            fn: template,
-            source: source
-        };
-    } else if (typeof template === 'string') {
+    if (utils.isFunction(template)) return template;
+
+    if (typeof template === 'string') {
         if (template.charAt(0) === '<') {
-            if (globals.debug) console.log('compiling template', source);
-            return resolveTemplate(globals.ext.templateCompiler(template), source);
+            return template;
         } else {
-            return resolveTemplate(utils.loadFile(template), utils.getBasePath(template));
+            return utils.loadFile(template);
         }
     }
 
-    throw 'template ' + template + ' is not a valid type';
+    throw 'Directive template ' + template + ' is not a valid type. It should either be an html string, a url, or a template function';
 }
 
 module.exports = Directive;

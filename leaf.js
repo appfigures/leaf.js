@@ -7,6 +7,7 @@ globals.utils = require('./libs/utils');
 globals.cache = require('./libs/cache');
 globals.Parser = require('./libs/parser');
 globals.ext = require('./libs/ext');
+globals.templates = require('./libs/templates');
 
 // $ plugin
 (function () {
