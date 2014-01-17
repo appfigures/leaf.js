@@ -98,6 +98,7 @@ function transformElement(element, parser, parentContext, directiveToIgnore) {
         context = directive.context;
         context = utils.isFunction(context) ? context(parser.globals) : context;
         context = utils.extend({}, context, elementAttrs, parentContext);
+        context.$globals = parser.globals;
 
         //  Create the new node from the
         //  directive's template, or use

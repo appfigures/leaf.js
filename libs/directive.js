@@ -68,7 +68,7 @@ Directive.prototype = {
     }
 };
 
-// Returns a promise which resolves to
+// Returns
 // {
 //   fn: templateFunction
 //   source: string of base url

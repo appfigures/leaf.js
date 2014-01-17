@@ -61,12 +61,15 @@ utils.extend($.fn, {
         utils.forEach(this, fn);
         return this;
     },
-    contents: function (ignoreEmptyTextNodes) {
+    contents: function (ignoreEmptyTextNodes, ignoreComments) {
         var children = $();
 
         utils.forEach(this[0].childNodes, function (child) {
             if (ignoreEmptyTextNodes) {
                if (child.nodeType === 3 && !utils.trim(child.nodeValue)) return;
+            }
+            if (ignoreComments) {
+                if (child.nodeType === 8) return;
             }
             children.push(child);
         });
