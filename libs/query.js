@@ -15,7 +15,13 @@ $.fn = $.prototype = {
         
         if (typeof arg === 'string') {
             // Parse it
-            var parser = new libs.DOMParser();
+            var parser = new libs.DOMParser({
+                errorHandler: {
+                    warning: function (e) {throw 'DOMParser warning: ' + e.message;},
+                    error: function (e) {throw 'DOMParser error: ' + e.message;},
+                    fatalError: function (e) {throw 'DOMParser fatalError: ' + e.message;}
+                }
+            });
             var root = parser.parseFromString('<div>' + arg + '</div>', 'text/xml').documentElement;
             arg = [];
             utils.forEach(root.childNodes, function (child) {
