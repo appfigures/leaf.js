@@ -26,12 +26,9 @@ ProcessChain.prototype = {
     }
 };
 
-// NEW
+// 
 
-// TODO: Maybe rename to something other than context
-// since it's being used elsewhere in a different way (for template data).
-
-function ParseContext() {
+function ParseSession() {
     this.globals = {};
     this.directives = [];
 
@@ -41,7 +38,7 @@ function ParseContext() {
         string: new ProcessChain()
     };
 }
-ParseContext.prototype = {
+ParseSession.prototype = {
     globals: null,
     directives: null,
     transforms: null,
@@ -80,7 +77,8 @@ function rawParse(options) {
         throw 'Error parsing input. Couldn\'t resolve an xml string';
     }
 
-    parseContext = new ParseContext();
+    session = new ParseSession();
+    session.options = options;
 
     element = $(options.xmlString);
     element.source(options.source);
@@ -91,16 +89,16 @@ function rawParse(options) {
 
         if (!module) throw 'Module ' + moduleName + ' not found. It can be included using leaf.use()';
 
-        module(parseContext);
+        module(session);
     });
 
-    element = parseContext.transforms.pre.process(element);
-    element = transformElement(element, parseContext);
-    element = parseContext.transforms.post.process(element);
+    element = session.transforms.pre.process(element);
+    element = transformElement(element, session);
+    element = session.transforms.post.process(element);
 
     return {
         el: element,
-        parseContext: parseContext
+        session: session
     };
 }
 
@@ -251,6 +249,6 @@ module.exports = {
     stringify: function (options) {
         var raw = rawParse(options),
             string = raw.el.stringify();
-        return raw.parseContext.transforms.string.process(string);
+        return raw.session.transforms.string.process(string);
     }
 };
