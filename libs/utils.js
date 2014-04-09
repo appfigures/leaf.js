@@ -23,23 +23,24 @@ utils = {
     toCamelCase: function (string) {
         return string.replace(toCamelCaseRegexp, function($1){return $1.toUpperCase().replace('-','');});
     },
-    // TODO: Accept a cache
-    loadFile: function (path) {
-        var fileCache = cache.$get('file');
-        if (fileCache[path]) {
-            return fileCache[path];
+    loadFile: function (path, cache) {
+        var fileCache = cache.ns('leaf-files'),
+            content;
+
+        if (fileCache.get(path)) {
+            return fileCache.get(path);
         }
 
         if (globals.debug) {
             console.log('loading file', path);
         }
 
-        var content = require('fs').readFileSync(path);
+        content = require('fs').readFileSync(path);
 
         if (!content) throw 'File ' + path + ' not found';
 
         content = content.toString();
-        fileCache[path] = content;
+        fileCache.put(path, content);
         return content;
     }
 };

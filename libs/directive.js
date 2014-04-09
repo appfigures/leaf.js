@@ -38,13 +38,13 @@ Directive.prototype = {
     },
 
     // Compile my template into a node
-    parseTemplate: function (context) {
+    parseTemplate: function (context, cache) {
         var templateName = 'directive-template:' + this.name,
-            template = templates.get(templateName),
+            template = templates.get(templateName, cache),
             element, source;
 
         if (!template) {
-            template = templates.put(templateName, resolveTemplate(this.template));
+            template = templates.put(templateName, resolveTemplate(this.template, cache), cache);
         }
 
         if (template) {
@@ -78,7 +78,7 @@ Directive.prototype = {
 };
 
 // Returns a template function or a string to compile
-function resolveTemplate(template) {
+function resolveTemplate(template, cache) {
     if (!template) return null;
 
     if (_.isFunction(template)) return template;
@@ -87,7 +87,7 @@ function resolveTemplate(template) {
         if (template.charAt(0) === '<') {
             return template;
         } else {
-            return utils.loadFile(template);
+            return utils.loadFile(template, cache);
         }
     }
 

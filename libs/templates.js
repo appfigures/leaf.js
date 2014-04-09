@@ -1,14 +1,14 @@
 var _ = require('underscore'),
     globals = require('./globals'),
     utils = require('./utils'),
-    cache = require('./cache'),
-    ext = require('./ext');
+    ext = require('./ext'),
+    ns = 'leaf-templates';
 
 module.exports = {
-    get: function (name) {
-        return cache.$get('template')[name];
+    get: function (name, cache) {
+        return cache.ns(ns).get(name);
     },
-    put: function (name, fn) {
+    put: function (name, fn, cache) {
         if (fn == null) return;
 
         if (typeof fn === 'string') {
@@ -17,7 +17,7 @@ module.exports = {
         }
         if (!_.isFunction(fn)) throw 'templates.push(): second argument must be a string to compile or a function';
 
-        cache.$get('template')[name] = fn;
+        cache.ns(ns).put(name, fn);
 
         return fn;
     }

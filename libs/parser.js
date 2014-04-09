@@ -5,8 +5,10 @@ var _ = require('underscore'),
     Directive = require('./directive');
     // Context = require('./context');
 
-function compose(fns) {
-    return _.compose.apply(_, fns);
+// Undercore's compose can's accept
+// arrays
+function compose(fnList) {
+    return _.compose.apply(_, fnList);
 }
 
 // 
@@ -48,7 +50,8 @@ function rawParse(options) {
     options = _.extend({
         path: null,
         xmlString: null,
-        source: null
+        source: null,
+        cache: null
     }, options);
 
     if (options.path) {
@@ -62,6 +65,7 @@ function rawParse(options) {
 
     session = new ParseSession();
     session.options = options;
+    session.cache = options.cache || new globals.Cache();
 
     element = $(options.xmlString);
     element.source(options.source);
@@ -172,7 +176,7 @@ function transformElement(element, session, parentContext, directiveToIgnore) {
         //  directive's template, or use
         //  the existing node
         directive.prepare(context, element);
-        var newElement = directive.parseTemplate(context);
+        var newElement = directive.parseTemplate(context, session.cache);
 
         if (newElement) {
             //  Merge the attributes and children from

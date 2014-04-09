@@ -4,7 +4,7 @@ var globals = require('./libs/globals'),
 
 globals.$ = require('./libs/query');
 globals.utils = require('./libs/utils');
-globals.cache = require('./libs/cache');
+globals.Cache = require('./libs/cache');
 globals.parser = require('./libs/parser');
 globals.ext = require('./libs/ext');
 globals.templates = require('./libs/templates');
