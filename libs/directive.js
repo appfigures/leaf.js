@@ -1,4 +1,5 @@
-var globals = require('./globals'),
+var _ = require('underscore'),
+    globals = require('./globals'),
     utils = require('./utils'),
     $ = require('./query'),
     templates = require('./templates');
@@ -8,7 +9,7 @@ var globals = require('./globals'),
 //
 
 function Directive (params) {
-    utils.extend(this, params);
+    _.extend(this, params);
 }
 Directive.prototype = {
     // Camel case name
@@ -18,6 +19,7 @@ Directive.prototype = {
     // The default context hash
     // or a function that returns an object (parser) => {}
     context: null,
+    // IMPORTANT: source must be a file (not a directory)
     // Optional string specifying the url of
     // the file this directive is based on. This is used to
     // resolve any relative urls.
@@ -79,7 +81,7 @@ Directive.prototype = {
 function resolveTemplate(template) {
     if (!template) return null;
 
-    if (utils.isFunction(template)) return template;
+    if (_.isFunction(template)) return template;
 
     if (typeof template === 'string') {
         if (template.charAt(0) === '<') {

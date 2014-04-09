@@ -2,7 +2,8 @@
 // Lite jQuery
 //
 
-var utils = require('./utils'),
+var _ = require('underscore'),
+    utils = require('./utils'),
     libs = require('./ext'),
     combineAttributesRegexp = /\S+/gi,
     transformAttributeRegexp = /^(data|x)\-/i;
@@ -26,7 +27,7 @@ $.fn = $.prototype = {
             });
             var root = parser.parseFromString('<div>' + arg + '</div>', 'text/xml').documentElement;
             arg = [];
-            utils.forEach(root.childNodes, function (child) {
+            _.forEach(root.childNodes, function (child) {
                 arg.push(child);
             });
         } else if (arg.nodeType) {
@@ -58,15 +59,15 @@ $.fn.init.prototype = $.fn;
 
 // Plugins
 
-utils.extend($.fn, {
+_.extend($.fn, {
     each: function (fn) {
-        utils.forEach(this, fn);
+        _.forEach(this, fn);
         return this;
     },
     contents: function (ignoreEmptyTextNodes, ignoreComments) {
         var children = $();
 
-        utils.forEach(this[0].childNodes, function (child) {
+        _.forEach(this[0].childNodes, function (child) {
             if (ignoreEmptyTextNodes) {
                if (child.nodeType === 3 && !utils.trim(child.nodeValue)) return;
             }
@@ -95,7 +96,7 @@ utils.extend($.fn, {
     children: function () {
         var children = $();
 
-        utils.forEach(this[0].childNodes, function (child) {
+        _.forEach(this[0].childNodes, function (child) {
             if (child.nodeType !== 1) return;
             children.push(child);
         });
@@ -133,7 +134,7 @@ utils.extend($.fn, {
     
     // Custom
     stringify: function () {
-        return utils.map(this, function (el) {
+        return _.map(this, function (el) {
             var serializer = new libs.XMLSerializer();
             return serializer.serializeToString(el);
         }).join('');
@@ -150,7 +151,7 @@ utils.extend($.fn, {
         function evalExp(exp) {
             if (exp === '') return null;
 
-            if (utils.isNumber(exp)) return parseFloat(exp);
+            if (utils.isNumeric(exp)) return parseFloat(exp);
 
             var firstChar = exp.charAt(0),
                 lastChar = exp.charAt(exp.length - 1);
@@ -165,7 +166,7 @@ utils.extend($.fn, {
             return char === '\'' || char === '"';
         }
 
-        utils.forEach(this[0].attributes, function (attribute) {
+        _.forEach(this[0].attributes, function (attribute) {
             var name = transformAttributeName(attribute.name),
                 value = evalExp(attribute.value);
 
@@ -176,10 +177,10 @@ utils.extend($.fn, {
     removeAttributes: function () {
         return this.each(function (element) {
             var attributes = [];
-            utils.forEach(element.attributes, function (attribute) {
+            _.forEach(element.attributes, function (attribute) {
                 attributes.push(attribute.name);
             });
-            utils.forEach(attributes, function (name) {
+            _.forEach(attributes, function (name) {
                 element.removeAttribute(name);
             });
         });
@@ -224,14 +225,14 @@ function combineAttributes(dst, src) {
             childrenFragment,
             cNode, nextNode;
 
-        options = utils.extend({}, defaultOptions, options);
+        options = _.extend({}, defaultOptions, options);
 
         // console.log('merge:', $(src).stringify(), '->', $(dst).stringify());
 
         if (options.attributes) {
             // Merge all the src attributes into dst
             // Ignore data-* attributes
-            utils.forEach(src.attributes, function (attribute, index) {
+            _.forEach(src.attributes, function (attribute, index) {
                 var name = attribute.name,
                     opFn, newValue;
 
@@ -243,7 +244,7 @@ function combineAttributes(dst, src) {
                     // Find the right op to use
                     opFn = options.attributes[name] || options.attributes['*'];
                     if (typeof opFn === 'string') opFn = options.ops[opFn];
-                    if (!utils.isFunction(opFn)) throw 'mergeElements: Operation not defined: ' + options.attributes[name];
+                    if (!_.isFunction(opFn)) throw 'mergeElements: Operation not defined: ' + options.attributes[name];
 
                     newValue = opFn(dst.getAttribute(name), attribute.value);
                 } else {

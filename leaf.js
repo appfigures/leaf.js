@@ -16,7 +16,7 @@ globals.use = function (fn) {
 (function () {
     function setSource(el, source) {
         el.leafSource = source;
-        globals.utils.forEach(el.childNodes, function (child) {
+        _.forEach(el.childNodes, function (child) {
             setSource(child, source);
         });
     }

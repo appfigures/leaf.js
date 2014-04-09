@@ -1,4 +1,5 @@
-var globals = require('./globals'),
+var _ = require('underscore'),
+    globals = require('./globals'),
     utils = require('./utils'),
     cache = require('./cache'),
     ext = require('./ext');
@@ -14,7 +15,7 @@ module.exports = {
             if (globals.debug) console.log('compiling template:', name);
             fn = ext.templateCompiler(fn);
         }
-        if (!utils.isFunction(fn)) throw 'templates.push(): second argument must be a string to compile or a function';
+        if (!_.isFunction(fn)) throw 'templates.push(): second argument must be a string to compile or a function';
 
         cache.$get('template')[name] = fn;
 

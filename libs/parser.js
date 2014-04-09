@@ -1,4 +1,5 @@
-var utils = require('./utils'),
+var _ = require('underscore'),
+    utils = require('./utils'),
     globals = require('./globals'),
     $ = require('./query'),
     Directive = require('./directive');
@@ -14,7 +15,7 @@ function ProcessChain () {
 ProcessChain.prototype = {
     fns: null,
     process: function (obj) {
-        utils.forEach(this.fns, function (fn) {
+        _.forEach(this.fns, function (fn) {
             var out = fn(obj);
             if (out !== undefined) obj = out;
         });
@@ -64,7 +65,7 @@ function getTemplateModules (el) {
 function rawParse(options) {
     var context, element, content;
 
-    options = utils.extend({
+    options = _.extend({
         path: null,
         xmlString: null,
         source: null
@@ -85,7 +86,7 @@ function rawParse(options) {
     element.source(options.source);
 
     // Get all the modules
-    utils.forEach(getTemplateModules(element), function (moduleName) {
+    _.forEach(getTemplateModules(element), function (moduleName) {
         module = globals.modules[moduleName];
 
         if (!module) throw 'Module ' + moduleName + ' not found. It can be included using leaf.use()';
@@ -123,7 +124,7 @@ function parse (options) {
 //         string: new ProcessChain()
 //     };
 
-//     utils.forEach(modules, function (moduleName) {
+//     _.forEach(modules, function (moduleName) {
 //         module = globals.modules[moduleName];
 
 //         if (!module) throw 'Module ' + moduleName + ' not found';
@@ -180,8 +181,8 @@ function transformElement(element, parser, parentContext, directiveToIgnore) {
         elementAttrs = element.getAttributes();
 
         context = directive.context;
-        context = utils.isFunction(context) ? context(parser.globals) : context;
-        context = utils.extend({}, context, elementAttrs, parentContext);
+        context = _.isFunction(context) ? context(parser.globals) : context;
+        context = _.extend({}, context, elementAttrs, parentContext);
         context.$globals = parser.globals;
 
         //  Create the new node from the
@@ -233,7 +234,7 @@ function transformElement(element, parser, parentContext, directiveToIgnore) {
 }
 function getMatchingDirective(el, parser, directiveToIgnore) {
     var matchedDirective = null;
-    utils.forEach(parser.directives, function (directive) {
+    _.forEach(parser.directives, function (directive) {
         if (directive === directiveToIgnore) return;
         if (directive.matches(el)) matchedDirective = directive;
     });
