@@ -5,26 +5,9 @@ var _ = require('underscore'),
     Directive = require('./directive');
     // Context = require('./context');
 
-//
-// ProcessChain
-//
-
-function ProcessChain () {
-    this.fns = [];
+function compose(fns) {
+    return _.compose.apply(_, fns);
 }
-ProcessChain.prototype = {
-    fns: null,
-    process: function (obj) {
-        _.forEach(this.fns, function (fn) {
-            var out = fn(obj);
-            if (out !== undefined) obj = out;
-        });
-        return obj;
-    },
-    add: function (fn) {
-        this.fns.push(fn);
-    }
-};
 
 // 
 
@@ -33,9 +16,9 @@ function ParseSession() {
     this.directives = [];
 
     this.transforms = {
-        pre: new ProcessChain(),
-        post: new ProcessChain(),
-        string: new ProcessChain()
+        pre: [],
+        post: [],
+        string: []
     };
 }
 ParseSession.prototype = {
@@ -92,9 +75,9 @@ function rawParse(options) {
         module(session);
     });
 
-    element = session.transforms.pre.process(element);
+    element = compose(session.transforms.pre)(element);
     element = transformElement(element, session);
-    element = session.transforms.post.process(element);
+    element = compose(session.transforms.post)(element);
 
     return {
         el: element,
@@ -249,6 +232,6 @@ module.exports = {
     stringify: function (options) {
         var raw = rawParse(options),
             string = raw.el.stringify();
-        return raw.session.transforms.string.process(string);
+        return compose(raw.session.transforms.string)(string);
     }
 };
