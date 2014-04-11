@@ -5,6 +5,7 @@
 var _ = require('underscore'),
     utils = require('./utils'),
     libs = require('./ext'),
+    errors = require('./errors'),
     combineAttributesRegexp = /\S+/gi,
     transformAttributeRegexp = /^(data|x)\-/i;
 
@@ -20,9 +21,9 @@ $.fn = $.prototype = {
             // Parse it
             var parser = new libs.DOMParser({
                 errorHandler: {
-                    warning: function (e) {throw 'DOMParser warning: ' + e + '\n' + arg;},
-                    error: function (e) {throw 'DOMParser error: ' + e + '\n' + arg;},
-                    fatalError: function (e) {throw 'DOMParser fatalError: ' + e + '\n' + arg;}
+                    warning: function (e) {throw new errors.DOMParserError('warning: ' + e + '\n' + arg);},
+                    error: function (e) {new errors.DOMParserError(e + '\n' + arg);},
+                    fatalError: function (e) {new errors.DOMParserError('fatalError: ' + e + '\n' + arg);}
                 }
             });
             var root = parser.parseFromString('<div>' + arg + '</div>', 'text/xml').documentElement;

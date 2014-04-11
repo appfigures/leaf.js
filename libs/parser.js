@@ -1,11 +1,12 @@
 var _ = require('underscore'),
     utils = require('./utils'),
+    errors = require('./errors'),
     globals = require('./globals'),
     $ = require('./query'),
     Directive = require('./directive');
     // Context = require('./context');
 
-// Undercore's compose can's accept
+// Undercore's compose can't accept
 // arrays
 function compose(fnList) {
     return _.compose.apply(_, fnList);
@@ -45,13 +46,16 @@ function getTemplateModules (el) {
 }
 
 function rawParse(options) {
-    var context, element, content;
+    var context, element, content, modules;
 
     options = _.extend({
         path: null,
         xmlString: null,
         source: null,
-        cache: null
+        cache: null,
+        // Optional custom modules
+        // Other than the global ones
+        modules: null
     }, options);
 
     if (options.path) {
@@ -68,15 +72,23 @@ function rawParse(options) {
     session.cache = options.cache || new globals.Cache();
 
     element = $(options.xmlString);
+
+    if (element.length < 1) throw new errors.DOMParserError('String couldn\'t be parsed for an unknown reason');
+    if (element[0].nodeType !== 1) throw new errors.DOMParserError('Parsed element must be of nodeType 1 (Element). It is ' + element[0].nodeType);
+
     element.source(options.source);
 
     // Get all the modules
-    _.forEach(getTemplateModules(element), function (moduleName) {
+    modules = getTemplateModules(element).map(function (moduleName) {
         module = globals.modules[moduleName];
-
         if (!module) throw 'Module ' + moduleName + ' not found. It can be included using leaf.use()';
+        return module;
+    });
 
-        module(session);
+    if (options.modules) modules = modules.concat(options.modules);
+
+    modules.forEach(function (fn) {
+        fn(session);
     });
 
     element = compose(session.transforms.pre)(element);
@@ -88,71 +100,6 @@ function rawParse(options) {
         session: session
     };
 }
-
-function parse (options) {
-    return rawParse(options).el;
-}
-
-//
-// Parser
-//
-
-// function Parser(modules) {
-//     var that = this;
-
-//     this.globals = {};
-//     this.directives = [];
-
-//     this.transforms = {
-//         pre: new ProcessChain(),
-//         post: new ProcessChain(),
-//         string: new ProcessChain()
-//     };
-
-//     _.forEach(modules, function (moduleName) {
-//         module = globals.modules[moduleName];
-
-//         if (!module) throw 'Module ' + moduleName + ' not found';
-
-//         module(that);
-//     });
-// }
-
-// Parser.prototype = {
-//     globals: null,
-//     directives: null,
-//     transforms: null,
-//     directive: function (name, props) {
-//         var directive = new Directive(props);
-//         directive.name = name;
-//         this.directives.push(directive);
-//     },
-//     // Doesn't use the cache by default
-//     parse: function (pathOrString, source) {
-//         var element, content;
-
-//         if (pathOrString.charAt(0) === '<') {
-//             element = $(pathOrString);
-//             element.source(source);
-//             element = this.transforms.pre.process(element);
-//             element = transformElement(element, this);
-//             element = this.transforms.post.process(element);
-//             return element;
-//         } else {
-//             content = utils.loadFile(pathOrString);
-//             return this.parse(content, source || pathOrString);
-//         }
-//     },
-//     stringify: function (input, source) {
-//         var element = this.parse(input, source),
-//             string = element.stringify();
-
-//         string = this.transforms.string.process(string);
-//         return string;
-//     }
-// };
-//
-// module.exports = Parser;
 
 // Parser internals
 function transformElement(element, session, parentContext, directiveToIgnore) {

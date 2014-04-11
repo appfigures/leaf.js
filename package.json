@@ -19,7 +19,8 @@
   "dependencies": {
     "xmldom": "~0.1.17",
     "q": "~1.0.0",
-    "underscore": "~1.5.2"
+    "underscore": "~1.5.2",
+    "tea-error": "~0.1.0"
   },
   "devDependencies": {
     "grunt": "~0.4.2",
@@ -28,7 +29,7 @@
     "grunt-mocha-test": "~0.8.1",
     "chai": "~1.8.1"
   },
-  "engine" : {
-    "node" : ">=0.8"
+  "engine": {
+    "node": ">=0.8"
   }
 }

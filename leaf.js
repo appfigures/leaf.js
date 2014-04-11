@@ -5,6 +5,7 @@ var globals = require('./libs/globals'),
 globals.$ = require('./libs/query');
 globals.utils = require('./libs/utils');
 globals.Cache = require('./libs/cache');
+globals.errors = require('./libs/errors');
 globals.parser = require('./libs/parser');
 globals.ext = require('./libs/ext');
 globals.templates = require('./libs/templates');

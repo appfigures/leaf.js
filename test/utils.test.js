@@ -20,35 +20,4 @@ describe('utils', function () {
             expect(utils.toDashCase('aSimpleString')).to.equal('a-simple-string');
         });
     });
-
-    describe('forEach', function () {
-
-        function testObject(obj) {
-            var iterations = 0;
-            utils.forEach(obj, function (value, index) {
-                expect(value).to.equal(obj[index]);
-                ++iterations;
-            });
-            expect(iterations).to.equal(obj.length);
-        }
-
-        it('should work with Array', function () {
-            testObject([1,2,3]);
-        });
-        it('should work with Array-like object', function () {
-            testObject({'1': 1, '2': 2, '3': 3, 'length': 3});
-        });
-    });
-
-    // describe('getBasePath', function () {
-    //     it('should work with abs paths', function () {
-    //         utils.getBasePath('/absolute').should.equal('/');
-    //     });
-    //     it('should work with just path', function () {
-    //         utils.getBasePath('path/to/file/').should.equal('path/to/file/');
-    //     });
-    //     it('should work with relative path', function () {
-    //         utils.getBasePath('path/to/file').should.equal('path/to/');
-    //     });
-    // });
 });
