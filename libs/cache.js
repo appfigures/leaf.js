@@ -1,5 +1,6 @@
 var _ = require('underscore');
 
+// Utility for printing out the cache's contents
 function toJSON(cache) {
     var namespaces = {};
 
@@ -37,6 +38,9 @@ Cache.prototype = {
         return this.namespaces[namespace];
     },
     toString: function () {
+        // Pretty print the JSON version of the cache
+        // All values are omitted (just keys are shown)
+        // for brevity.
         return JSON.stringify(toJSON(this), null, '    ');
     }
 };
