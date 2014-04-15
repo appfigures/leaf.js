@@ -14,9 +14,19 @@ function compose(fnList) {
 
 // 
 
-function ParseSession() {
+function ParseSession(modules) {
+    var that = this;
+
     this.globals = {};
     this.directives = [];
+    this.modules = {};
+
+    // Initialize the modules
+    if (modules) {
+        _.forEach(modules, function (fn, name) {
+            that.modules[name] = fn(globals);
+        });
+    }
 
     this.transforms = {
         pre: [],
@@ -28,6 +38,12 @@ ParseSession.prototype = {
     globals: null,
     directives: null,
     transforms: null,
+    modules: null,
+    module: function (name) {
+        var module = this.modules[name] || globals.modules[name];
+        if (!module) throw 'Module not loaded ' + name;
+        return module;
+    },
     directive: function (name, props) {
         var directive = new Directive(props);
         directive.name = name;
@@ -45,12 +61,14 @@ function getTemplateModules (el) {
     return string ? string.split(' ') : [];
 }
 
-function rawParse(options) {
-    var context, element, content, modules;
+/**
+ * @param input (filePath<String>|domElement<leaf.$>)
+ * @param options.modules ({moduleName: moduleFn, ...})
+ */
+function rawParse(input, options) {
+    var session, element;
 
     options = _.extend({
-        path: null,
-        xmlString: null,
         source: null,
         cache: null,
         // Optional custom modules
@@ -58,38 +76,31 @@ function rawParse(options) {
         modules: null
     }, options);
 
-    if (options.path) {
-        options.xmlString = utils.loadFile(options.path);
+    options.cache = options.cache || new globals.Cache();
+    options.modules = options.modules || {};
+
+    if (_.isString(input)) {
+        input = utils.loadFile(input, options.cache);
+        element = $(input).source(options.source || input);
+    } else if (input instanceof $) {
+        element = input;
+        if (_.isString(options.source)) element.source(options.source);
+    } else {
+        throw 'Parse input must be a file path or a $(dom_element)';
     }
-
-    if (!options.xmlString) {
-        // TODO: Make this more useful
-        throw 'Error parsing input. Couldn\'t resolve an xml string';
-    }
-
-    session = new ParseSession();
-    session.options = options;
-    session.cache = options.cache || new globals.Cache();
-
-    element = $(options.xmlString);
 
     if (element.length < 1) throw new errors.DOMParserError('String couldn\'t be parsed for an unknown reason');
     if (element[0].nodeType !== 1) throw new errors.DOMParserError('Parsed element must be of nodeType 1 (Element). It is ' + element[0].nodeType);
 
-    element.source(options.source);
+    session = new ParseSession(options.modules);
+    session.options = options;
+    session.cache = options.cache;
 
-    // Get all the modules
-    modules = getTemplateModules(element).map(function (moduleName) {
-        module = globals.modules[moduleName];
-        if (!module) throw 'Module ' + moduleName + ' not found. It can be included using leaf.use()';
-        return module;
-    });
-
-    if (options.modules) modules = modules.concat(options.modules);
-
-    modules.forEach(function (fn) {
-        fn(session);
-    });
+    // Load all the modules
+    getTemplateModules(element)
+        .forEach(function (moduleName) {
+            session.module(moduleName).call(this, session);
+        });
 
     element = compose(session.transforms.pre)(element);
     element = transformElement(element, session);
@@ -177,11 +188,11 @@ function getMatchingDirective(el, session, directiveToIgnore) {
 }
 
 module.exports = {
-    parse: function (options) {
-        return rawParse(options).el;
+    parse: function (input, options) {
+        return rawParse(input, options).el;
     },
-    stringify: function (options) {
-        var raw = rawParse(options),
+    stringify: function (input, options) {
+        var raw = rawParse(input, options),
             string = raw.el.stringify();
         return compose(raw.session.transforms.string)(string);
     }
