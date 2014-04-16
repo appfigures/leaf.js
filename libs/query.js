@@ -26,11 +26,18 @@ $.fn = $.prototype = {
                     fatalError: function (e) {new errors.DOMParserError('fatalError: ' + e + '\n' + arg);}
                 }
             });
-            var root = parser.parseFromString('<div>' + arg + '</div>', 'text/xml').documentElement;
+            var root = parser.parseFromString('<div>' + arg + '</div>', 'text/xml').documentElement,
+                child;
             arg = [];
-            _.forEach(root.childNodes, function (child) {
+            while(child = root.firstChild) {
+                root.removeChild(child);
+                // Due to a bug in XMLDom, parentNode
+                // doesn't get cleared when removing
+                // (https://github.com/jindw/xmldom/issues/86)
+                child.parentNode = undefined;
+
                 arg.push(child);
-            });
+            }
         } else if (arg.nodeType) {
             // Handle this?
         }
@@ -84,6 +91,13 @@ _.extend($.fn, {
         return this.each(function (el) {
             $(item).each(function (itemEl) {
                 el.appendChild(itemEl);
+            });
+        });
+    },
+    prepend: function (item) {
+        return this.each(function (el) {
+            $(item).each(function (itemEl) {
+                el.insertBefore(itemEl, el.childNodes[0]);
             });
         });
     },

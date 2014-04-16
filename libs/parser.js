@@ -7,9 +7,17 @@ var _ = require('underscore'),
     // Context = require('./context');
 
 // Undercore's compose can't accept
-// arrays
+// arrays and it processes the list
+// in reverse order
 function compose(fnList) {
-    return _.compose.apply(_, fnList);
+    return function () {
+        var len = fnList.length, i,
+            args = arguments;
+        for (i = 0; i < len; ++i) {
+            args = [fnList[i].apply(this, args)];
+        }
+        return args[0];
+    };
 }
 
 // 

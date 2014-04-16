@@ -54,8 +54,13 @@ Directive.prototype = {
             }
 
             element = template(context);
-            // TODO: Error check
             element = $(element);
+
+            // TODO: Error check
+            if (element[0].nodeType !== 1) {
+                throw new globals.errors.DOMParserError('Error parsing template for directive \'' + this.name + '\'. Parsed document must have nodeType 1 (has ' + element[0].nodeType + ').');
+            }
+
             element.source(this.source || source);
 
             return element;
@@ -71,7 +76,7 @@ Directive.prototype = {
     // Can modify context. Can return a promise
     prepare: function (context, originalElement) {/* empty */},
     // Can return a promise
-    logic: function (el, context, parser) {/* empty */},
+    logic: function (el, context) {/* empty */},
     matches: function (el) {
         return this.matchesName(el);
     }
