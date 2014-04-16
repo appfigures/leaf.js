@@ -61,6 +61,14 @@ function getTemplateModules (el) {
     return string ? string.split(' ') : [];
 }
 
+function getExtModules(source, cache) {
+    var fileName = 'leaf-modules.js',
+        obj = utils.requireUp(fileName, source, cache);
+
+    if (!_.isObject(obj) || _.isArray(obj)) throw fileName + ' must export an object with moduleName -> fn mapping';
+    return obj;
+}
+
 /**
  * @param input (filePath<String>|domElement<leaf.$>)
  * @param options.modules ({moduleName: moduleFn, ...})
@@ -73,15 +81,18 @@ function rawParse(input, options) {
         cache: null,
         // Optional custom modules
         // Other than the global ones
-        modules: null
+        modules: null,
+        // Search the source path and
+        // its ancestors for
+        // a leaf-modules.js file
+        loadModulesConfig: true
     }, options);
 
     options.cache = options.cache || new globals.Cache();
     options.modules = options.modules || {};
 
     if (_.isString(input)) {
-        input = utils.loadFile(input, options.cache);
-        element = $(input).source(options.source || input);
+        element = $(utils.loadFile(input, options.cache)).source(options.source || input);
     } else if (input instanceof $) {
         element = input;
         if (_.isString(options.source)) element.source(options.source);
@@ -91,6 +102,14 @@ function rawParse(input, options) {
 
     if (element.length < 1) throw new errors.DOMParserError('String couldn\'t be parsed for an unknown reason');
     if (element[0].nodeType !== 1) throw new errors.DOMParserError('Parsed element must be of nodeType 1 (Element). It is ' + element[0].nodeType);
+
+    // Get the modules
+    if (options.loadModulesConfig) {
+        options.modules = _.extend(
+            getExtModules(element.source(), options.cache),
+            options.modules
+        );
+    }
 
     session = new ParseSession(options.modules);
     session.options = options;

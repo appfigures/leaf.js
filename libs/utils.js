@@ -1,4 +1,6 @@
-var globals = require('./globals'),
+var path = require('path'),
+    findup = require('findup'),
+    globals = require('./globals'),
     cache = require('./cache'),
     trimRegexp = /^[\ \t\r\n]+|[\ \t\r\n]+$/ig,
     toCamelCaseRegexp = /(\-[a-z])/g,
@@ -42,6 +44,36 @@ utils = {
         content = content.toString();
         fileCache.put(path, content);
         return content;
+    },
+    // Look for a file in the given search path and all of it's
+    // ancestors, then require it if it exists and return the
+    // result
+    requireUp: function (fileName, searchPath, cache, cacheKey) {
+        var newPath, options;
+
+        if (cache) {
+            cache = cache.ns('extoptions:' + (cacheKey ? cacheKey + ':' : '') + fileName);
+            options = cache.get(searchPath);
+        }
+
+        if (options == null) {
+            options = getIt();
+            if (cache) {
+                cache.put(searchPath, options);
+            }
+        }
+
+        return options;
+
+        function getIt() {
+            try {
+                newPath = findup.sync(path.dirname(searchPath), fileName);
+            } catch(e) {
+                return {};
+            }
+
+            return require(path.resolve(newPath, fileName));
+        }
     }
 };
 
