@@ -9,10 +9,13 @@ globals.errors = require('./libs/errors');
 globals.parser = require('./libs/parser');
 globals.ext = require('./libs/ext');
 globals.templates = require('./libs/templates');
+
 globals.use = function (fn) {
     fn(globals);
 };
 
+// globals
+globals.$.mergeElements.defaultOptions.contentTagName = 'af-content';
 // $ plugin
 (function () {
     function setSource(el, source) {

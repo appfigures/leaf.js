@@ -210,23 +210,12 @@ function combineAttributes(dst, src) {
 // Keeps the src intact
 // Method params are plain nodes
 (function () {
-    var defaultOptions = {
-        attributes: {
-            'class': 'combine',
-            '*': 'src'
-        },
-        ops: {
-            'src': function (dstValue, srcValue) { return srcValue; },
-            'dst': function (dstValue, srcValue) { return srcValue; },
-            'combine': combineAttributes
-        }
-    };
     $.mergeElements = function (dst, src, options) {
         var contentPlaceholder,
             childrenFragment,
             cNode, nextNode;
 
-        options = _.extend({}, defaultOptions, options);
+        options = _.extend({}, $.mergeElements.defaultOptions, options);
 
         // console.log('merge:', $(src).stringify(), '->', $(dst).stringify());
 
@@ -268,12 +257,24 @@ function combineAttributes(dst, src) {
         }
 
         // TODO: What to call the placeholder tag?
-        contentPlaceholder = dst.getElementsByTagName('content')[0];
+        contentPlaceholder = dst.getElementsByTagName(options.contentTagName)[0];
 
         if (contentPlaceholder) {
             contentPlaceholder.parentNode.replaceChild(childrenFragment, contentPlaceholder);
         } else {
             dst.appendChild(childrenFragment);
+        }
+    };
+    $.mergeElements.defaultOptions = {
+        contentTagName: 'content',
+        attributes: {
+            'class': 'combine',
+            '*': 'src'
+        },
+        ops: {
+            'src': function (dstValue, srcValue) { return srcValue; },
+            'dst': function (dstValue, srcValue) { return srcValue; },
+            'combine': combineAttributes
         }
     };
 
