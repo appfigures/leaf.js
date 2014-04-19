@@ -72,6 +72,9 @@ _.extend($.fn, {
         _.forEach(this, fn);
         return this;
     },
+    map: function (fn) {
+        return $(_.map(this, fn));
+    },
     contents: function (ignoreEmptyTextNodes, ignoreComments) {
         var children = $();
 
@@ -86,6 +89,33 @@ _.extend($.fn, {
         });
 
         return children;
+    },
+    text: function () {
+        // Super bare implementation
+        return this[0].textContent;
+    },
+    parent: function () {
+        return this.map(function (el) {
+            return el.parentNode;
+        });
+    },
+    before: function (item) {
+        return this.each(function (el) {
+            if (el.parentNode) {
+                $(item).each(function (itemEl) {
+                    el.parentNode.insertBefore(itemEl, el);
+                });
+            }
+        });
+    },
+    after: function (item) {
+        return this.each(function (el) {
+            if (el.parentNode) {
+                $(item).each(function (itemEl) {
+                    el.parentNode.insertBefore(itemEl, el.nextSibling);
+                });
+            }
+        });
     },
     append: function (item) {
         return this.each(function (el) {
@@ -125,17 +155,28 @@ _.extend($.fn, {
             }
         });
     },
-    wrap: function (wrapper) {
-        wrapper = $(wrapper);
+    clone: function () {
+        return this.map(function (el) {
+            return el.cloneNode(true);
+        });
+    },
+    // It's easy to implement wrap() using clone
+    wrapAll: function (wrapper) {
+        if (this.length > 0) {
+            wrapper = $(wrapper);
 
-        // Find the deepest node
-        var deepest = wrapper[0];
-        while(deepest.firstChild) deepest = deepest.firstChild;
+            // Find the deepest node
+            var deepest = wrapper[0];
+            while(deepest.firstChild) deepest = deepest.firstChild;
 
-        this.replaceWith(wrapper);
-        deepest.appendChild(this[0]);
+            this.replaceWith(wrapper);
+            $(deepest).append(this);
+        }
 
         return this;
+    },
+    wrapInner: function (wrapper) {
+        this.contents().wrapAll(wrapper);
     },
     addClass: function (className) {
         return this.addToAttribute('class', className);
@@ -224,40 +265,57 @@ function combineAttributes(dst, src) {
 // Keeps the src intact
 // Method params are plain nodes
 (function () {
+    $.mergeAttributes = function (dst, src, options) {
+        options = _.extend({}, $.mergeAttributes.defaults, options);
+
+        // Merge all the src attributes into dst
+        // Ignore data-* attributes
+        _.forEach(src.attributes, function (attribute) {
+            var name = attribute.name,
+                opFn, newValue;
+
+            // TODO: Expose this functionality
+            if (name.indexOf('data-') === 0) return;
+
+            // If there's a conflict, try to resolve it
+            if (src.hasAttribute(name)) {
+                // Find the right op to use
+                opFn = options.attributes[name] || options.attributes['*'];
+                if (typeof opFn === 'string') opFn = options.ops[opFn];
+                if (!_.isFunction(opFn)) throw 'mergeElements: Operation not defined: ' + options.attributes[name];
+
+                newValue = opFn(dst.getAttribute(name), attribute.value);
+            } else {
+                // Otherwise just copy the attribute over
+                newValue = attribute.value;
+            }
+
+            dst.setAttribute(name, newValue);
+        });
+    };
+
+    $.mergeAttributes.defaults = {
+        attributes: {
+            'class': 'combine',
+            '*': 'src'
+        },
+        ops: {
+            'src': function (dstValue, srcValue) { return srcValue; },
+            'dst': function (dstValue, srcValue) { return srcValue; },
+            'combine': combineAttributes
+        }
+    };
+
     $.mergeElements = function (dst, src, options) {
         var contentPlaceholder,
             childrenFragment,
             cNode, nextNode;
 
-        options = _.extend({}, $.mergeElements.defaultOptions, options);
+        options = _.extend({}, $.mergeElements.defaults, options);
 
         // console.log('merge:', $(src).stringify(), '->', $(dst).stringify());
-
         if (options.attributes) {
-            // Merge all the src attributes into dst
-            // Ignore data-* attributes
-            _.forEach(src.attributes, function (attribute, index) {
-                var name = attribute.name,
-                    opFn, newValue;
-
-                // TODO: Expose this functionality
-                if (name.indexOf('data-') === 0) return;
-
-                // If there's a conflict, try to resolve it
-                if (src.hasAttribute(name)) {
-                    // Find the right op to use
-                    opFn = options.attributes[name] || options.attributes['*'];
-                    if (typeof opFn === 'string') opFn = options.ops[opFn];
-                    if (!_.isFunction(opFn)) throw 'mergeElements: Operation not defined: ' + options.attributes[name];
-
-                    newValue = opFn(dst.getAttribute(name), attribute.value);
-                } else {
-                    // Otherwise just copy the attribute over
-                    newValue = attribute.value;
-                }
-
-                dst.setAttribute(name, newValue);
-            });
+            $.mergeAttributes(dst, src, options.attrs);
         }
 
         // Replace the contentPlaceholder with the children
@@ -279,17 +337,9 @@ function combineAttributes(dst, src) {
             dst.appendChild(childrenFragment);
         }
     };
-    $.mergeElements.defaultOptions = {
+    $.mergeElements.defaults = {
         contentTagName: 'content',
-        attributes: {
-            'class': 'combine',
-            '*': 'src'
-        },
-        ops: {
-            'src': function (dstValue, srcValue) { return srcValue; },
-            'dst': function (dstValue, srcValue) { return srcValue; },
-            'combine': combineAttributes
-        }
+        attributes: {}
     };
 
     function createDocumentFragment () {

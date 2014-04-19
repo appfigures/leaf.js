@@ -1,4 +1,5 @@
 var path = require('path'),
+    _ = require('underscore'),
     findup = require('findup'),
     globals = require('./globals'),
     cache = require('./cache'),
@@ -8,6 +9,7 @@ var path = require('path'),
     utils;
 
 utils = {
+    _: _,
     // My very rough version
     isArrayLike: function (obj) {
         return (obj instanceof Array) || (typeof obj !== 'string' && typeof obj.length === 'number');

@@ -15,7 +15,7 @@ globals.use = function (fn) {
 };
 
 // globals
-globals.$.mergeElements.defaultOptions.contentTagName = 'af-content';
+globals.$.mergeElements.defaults.contentTagName = 'af-content';
 // $ plugin
 (function () {
     function setSource(el, source) {
