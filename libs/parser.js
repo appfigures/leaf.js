@@ -140,62 +140,80 @@ function rawParse(input, options) {
 }
 
 // Parser internals
-function transformElement(element, session, parentContext, directiveToIgnore) {
-
+function transformElement(element, session, parentContext, directivesToIgnore) {
     // Get matching directive
-    var directive = getMatchingDirective(element, session, directiveToIgnore),
-        elementAttrs,
-        context;
+    var directives = getMatchingDirectives(element, session, directivesToIgnore),
+        elementAlreadyReplaced = false, origParent = element[0].parentNode;
 
-    if (directive) {
-        // Generate the context
+    if (directives.length > 0) {
+        // Using every instead of forEach to allow
+        // for quick exit (http://stackoverflow.com/questions/6260756/how-to-stop-javascript-foreach)
+        directives.every(function (directive) {
+            var elementAttrs,
+                context, newElement;
+
+            // Generate the context
+            elementAttrs = element.getAttributes();
+
+            context = directive.context;
+            context = _.isFunction(context) ? context(session.globals) : context;
+            context = _.extend({}, context, elementAttrs, parentContext);
+            context.$globals = session.globals;
+
+            //  Create the new node from the
+            //  directive's template, or use
+            //  the existing node
+            directive.prepare(context, element);
+            newElement = directive.parseTemplate(context, session.cache);
+
+            if (newElement) {
+                if (elementAlreadyReplaced) {
+                    throw 'More than one directive is trying to template the element (directives = ' + directives.map(function (d) {return d.name;}).join(',') + ')';
+                }
+                elementAlreadyReplaced = true;
+
+                //  Merge the attributes and children from
+                //  the originalNode into the newNode
+                $.mergeElements(newElement[0], element[0], directive.mergeOptions);
+
+                // Replace the element in its parent
+                element.replaceWith(newElement);
+            } else {
+                newElement = element;
+            }
+
+            //  Run the directive's logic
+            directive.logic(newElement, context);//, session);
+            // ^ Took out session because it contains information
+            // which the directive shouldn't have access to such as
+            // other directives and transformations. The only thing
+            // that session has which the directive might need is the
+            // globals object. We can pass that in explicity if needed
+            // though right now it's also passed into context.$globals
+            // (to be used inside of directive templates).
+            // When we know this works, remove the comments.
+
+            // If the element has deleted itself, stop processing
+            if (newElement[0].parentNode !== origParent) {
+                return false;
+            }
+
+            if (globals.debug) {
+                // Keep a record of the directives applied
+                // to this node
+                var dir = newElement[0].getAttribute('af-directive');
+                dir = dir ? dir + ' ' : '';
+                newElement[0].setAttribute('af-directive', dir + directive.name);
+            }
+
+            // Run the new node through the compiler again, ignoring
+            // the matched directives
+            element = transformElement(newElement, session, context, directives);
+
+            return true;
+        });
         
-        elementAttrs = element.getAttributes();
-
-        context = directive.context;
-        context = _.isFunction(context) ? context(session.globals) : context;
-        context = _.extend({}, context, elementAttrs, parentContext);
-        context.$globals = session.globals;
-
-        //  Create the new node from the
-        //  directive's template, or use
-        //  the existing node
-        directive.prepare(context, element);
-        var newElement = directive.parseTemplate(context, session.cache);
-
-        if (newElement) {
-            //  Merge the attributes and children from
-            //  the originalNode into the newNode
-            $.mergeElements(newElement[0], element[0], directive.mergeOptions);
-
-            // Replace the element in its parent
-            element.replaceWith(newElement);
-        } else {
-            newElement = element;
-        }
-
-        //  Run the directive's logic
-        directive.logic(newElement, context);//, session);
-        // ^ Took out session because it contains information
-        // which the directive shouldn't have access to such as
-        // other directives and transformations. The only thing
-        // that session has which the directive might need is the
-        // globals object. We can pass that in explicity if needed
-        // though right now it's also passed into context.$globals
-        // (to be used inside of directive templates).
-        // When we know this works, remove the comments.
-
-        if (globals.debug) {
-            // Keep a record of the directives applied
-            // to this node
-            var dir = newElement[0].getAttribute('af-directive');
-            dir = dir ? dir + ' ' : '';
-            newElement[0].setAttribute('af-directive', dir + directive.name);
-        }
-
-        // Run the new node through the compiler again, ignoring
-        // the matched directive
-        return transformElement(newElement, session, context, directive);
+        return element;
     } else {
         // Compile all the children
         element.children().each(function (child) {
@@ -204,14 +222,14 @@ function transformElement(element, session, parentContext, directiveToIgnore) {
         return element;
     }
 }
-function getMatchingDirective(el, session, directiveToIgnore) {
-    var matchedDirective = null;
+function getMatchingDirectives(el, session, directivesToIgnore) {
+    var matchedDirectives = [];
     _.forEach(session.directives, function (directive) {
-        if (directive === directiveToIgnore) return;
-        if (directive.matches(el)) matchedDirective = directive;
+        if (directivesToIgnore && directivesToIgnore.indexOf(directive) >= 0) return;
+        if (directive.matches(el)) matchedDirectives.push(directive);
     });
 
-    return matchedDirective;
+    return matchedDirectives;
 }
 
 module.exports = {

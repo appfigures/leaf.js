@@ -119,6 +119,7 @@ _.extend($.fn, {
     },
     append: function (item) {
         return this.each(function (el) {
+            if (el.nodeType !== 1) return;
             $(item).each(function (itemEl) {
                 el.appendChild(itemEl);
             });
@@ -126,6 +127,7 @@ _.extend($.fn, {
     },
     prepend: function (item) {
         return this.each(function (el) {
+            if (el.nodeType !== 1) return;
             $(item).each(function (itemEl) {
                 el.insertBefore(itemEl, el.childNodes[0]);
             });
@@ -135,6 +137,11 @@ _.extend($.fn, {
         return this.each(function (el) {
             if (el.parentNode) {
                 el.parentNode.removeChild(el);
+
+                // Due to a bug in XMLDom, parentNode
+                // doesn't get cleared when removing
+                // (https://github.com/jindw/xmldom/issues/86)
+                el.parentNode = undefined;
             }
         });
     },
@@ -248,6 +255,38 @@ _.extend($.fn, {
     }
 });
 
+// Simple selectors
+(function () {
+    $.fn.find = function (selector, rest) {
+        var arr = [],
+            args = Array.prototype.slice.call(arguments, 1, arguments.length);
+
+        this.each(function (el) {
+            var out = selector.apply(el, args);
+
+            if (utils.isArrayLike(out)) {
+                _.forEach(out, function (element) {
+                    arr.push(element);
+                });
+            } else {
+                arr.push(out);
+            }
+        });
+
+        return $(arr);
+    };
+
+    // 'this' is the raw dom element
+    $.by = {
+        id: function (id) {
+            return this.getElementById(id);
+        },
+        tag: function (name) {
+            return this.getElementsByTagName(name);
+        }
+    };
+}());
+
 function combineAttributes(dst, src) {
     var value = dst || '',
         values = [];
@@ -265,33 +304,43 @@ function combineAttributes(dst, src) {
 // Keeps the src intact
 // Method params are plain nodes
 (function () {
+
+    // Merge all the src attributes into dst
+    // Ignore data-* attributes
+    // @param dst - DOMElement
+    // @param src - DOMElement | {attrName: value, ...}
     $.mergeAttributes = function (dst, src, options) {
         options = _.extend({}, $.mergeAttributes.defaults, options);
 
-        // Merge all the src attributes into dst
-        // Ignore data-* attributes
-        _.forEach(src.attributes, function (attribute) {
-            var name = attribute.name,
-                opFn, newValue;
+        function loop(value, name, hasAttribute) {
+            var opFn, newValue;
 
             // TODO: Expose this functionality
             if (name.indexOf('data-') === 0) return;
 
             // If there's a conflict, try to resolve it
-            if (src.hasAttribute(name)) {
+            if (src.hasAttribute ? src.hasAttribute(name) : name in src) {
                 // Find the right op to use
                 opFn = options.attributes[name] || options.attributes['*'];
                 if (typeof opFn === 'string') opFn = options.ops[opFn];
                 if (!_.isFunction(opFn)) throw 'mergeElements: Operation not defined: ' + options.attributes[name];
 
-                newValue = opFn(dst.getAttribute(name), attribute.value);
+                newValue = opFn(dst.getAttribute(name), value);
             } else {
                 // Otherwise just copy the attribute over
-                newValue = attribute.value;
+                newValue = value;
             }
 
             dst.setAttribute(name, newValue);
-        });
+        }
+
+        if (src.nodeType) {
+            _.forEach(src.attributes, function (attribute) {
+                return loop(attribute.value, attribute.name);
+            });
+        } else {
+            _.forEach(src, loop);
+        }
     };
 
     $.mergeAttributes.defaults = {
@@ -328,7 +377,6 @@ function combineAttributes(dst, src) {
             cNode = nextNode;
         }
 
-        // TODO: What to call the placeholder tag?
         contentPlaceholder = dst.getElementsByTagName(options.contentTagName)[0];
 
         if (contentPlaceholder) {

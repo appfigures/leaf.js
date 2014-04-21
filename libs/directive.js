@@ -2,7 +2,8 @@ var _ = require('underscore'),
     globals = require('./globals'),
     utils = require('./utils'),
     $ = require('./query'),
-    templates = require('./templates');
+    templates = require('./templates'),
+    uid = 0;
 
 //
 // Directive
@@ -10,6 +11,10 @@ var _ = require('underscore'),
 
 function Directive (params) {
     _.extend(this, params);
+    // Create a unique id for templating
+    // purposes since multiple directives
+    // can have the same name
+    this.uid = uid++;
 }
 Directive.prototype = {
     // Camel case name
@@ -39,7 +44,7 @@ Directive.prototype = {
 
     // Compile my template into a node
     parseTemplate: function (context, cache) {
-        var templateName = 'directive-template:' + this.name,
+        var templateName = 'directive-template:' + this.name + this.uid,
             template = templates.get(templateName, cache),
             element, source;
 
