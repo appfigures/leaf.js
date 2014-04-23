@@ -9,6 +9,36 @@ var _ = require('underscore'),
     combineAttributesRegexp = /\S+/gi,
     transformAttributeRegexp = /^(data|x)\-/i;
 
+function parseXMLString(string) {
+    // Parse it
+    var parser = new libs.DOMParser({
+            errorHandler: {
+                warning: function (e) {throw new errors.DOMParserError('warning: ' + e + '\n' + string);},
+                error: function (e) {new errors.DOMParserError(e + '\n' + string);},
+                fatalError: function (e) {new errors.DOMParserError('fatalError: ' + e + '\n' + string);}
+            }
+        }),
+        root = parser.parseFromString('<div>' + string + '</div>', 'text/xml').documentElement,
+        child,
+        out = [];
+
+    while(child = root.firstChild) {
+        root.removeChild(child);
+        // Due to a bug in XMLDom, parentNode
+        // doesn't get cleared when removing
+        // (https://github.com/jindw/xmldom/issues/86)
+        child.parentNode = undefined;
+
+        out.push(child);
+    }
+
+    // Things like <head> get turned into a text node.
+    // That could be hard to debug.
+    if (out.length === 1 && string.charAt(0) === '<' && out[0].nodeType === 3) throw 'Error parsing string to a DOM element: ' + string;
+
+    return out;
+}
+
 function $(arg) {
     return new $.prototype.init(arg);
 }
@@ -18,26 +48,7 @@ $.fn = $.prototype = {
         if (!arg) return this;
         
         if (typeof arg === 'string') {
-            // Parse it
-            var parser = new libs.DOMParser({
-                errorHandler: {
-                    warning: function (e) {throw new errors.DOMParserError('warning: ' + e + '\n' + arg);},
-                    error: function (e) {new errors.DOMParserError(e + '\n' + arg);},
-                    fatalError: function (e) {new errors.DOMParserError('fatalError: ' + e + '\n' + arg);}
-                }
-            });
-            var root = parser.parseFromString('<div>' + arg + '</div>', 'text/xml').documentElement,
-                child;
-            arg = [];
-            while(child = root.firstChild) {
-                root.removeChild(child);
-                // Due to a bug in XMLDom, parentNode
-                // doesn't get cleared when removing
-                // (https://github.com/jindw/xmldom/issues/86)
-                child.parentNode = undefined;
-
-                arg.push(child);
-            }
+            arg = parseXMLString(arg);
         } else if (arg.nodeType) {
             // Handle this?
         }
