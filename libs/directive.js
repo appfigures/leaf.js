@@ -61,9 +61,8 @@ Directive.prototype = {
             element = template(context);
             element = $(element);
 
-            // TODO: Error check
             if (element[0].nodeType !== 1) {
-                throw new globals.errors.DOMParserError('Error parsing template for directive \'' + this.name + '\'. Parsed document must have nodeType 1 (has ' + element[0].nodeType + ').');
+                throw new globals.errors.DOMParserError('Error parsing template for directive \'' + this.name + '\'. Parsed document must have nodeType 1 (has ' + element[0].nodeType + ' ' + element[0].nodeName + ').');
             }
 
             element.source(this.source || source);
