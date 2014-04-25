@@ -4,7 +4,6 @@ var _ = require('underscore'),
     globals = require('./globals'),
     $ = require('./query'),
     Directive = require('./directive');
-    // Context = require('./context');
 
 // Undercore's compose can't accept
 // arrays and it processes the list
@@ -93,7 +92,11 @@ function rawParse(input, options) {
         // Search the source path and
         // its ancestors for
         // a leaf-modules.js file
-        loadModulesConfig: true
+        loadModulesConfig: true,
+        // Optional function to
+        // mutate the session (function (session) {})
+        // TODO: Rename
+        fn: null
     }, options);
 
     options.cache = options.cache || new globals.Cache();
@@ -126,8 +129,14 @@ function rawParse(input, options) {
     // Load all the modules
     getTemplateModules(element)
         .forEach(function (moduleName) {
+            // Using .call to make it more obvious that
+            // session.module() returns a function. There's
+            // probably a less redundant way to show this though :)
             session.module(moduleName).call(this, session);
         });
+
+    // Execute the optional callback
+    if (options.fn) options.fn(session);
 
     element = compose(session.transforms.pre)(element);
     element = transformElement(element, session);
@@ -232,6 +241,9 @@ function getMatchingDirectives(el, session, directivesToIgnore) {
     return matchedDirectives;
 }
 
+// TODO: Make this just a single function
+// that returns a string. If the el needed, add
+// a transform fn.
 module.exports = {
     parse: function (input, options) {
         return rawParse(input, options).el;
