@@ -14,7 +14,15 @@ var cheerio = require('cheerio');
 
 function $(args) {
     if (typeof args === 'string') {
-        return cheerio.load(args).root().contents();
+
+        //
+        // In html mode `<div /> test` would become
+        // `<div>test</div>`
+        //
+
+        return cheerio.load(args, {
+            xmlMode: true
+        }).root().contents();
     }
 
     return cheerio.apply(this, arguments);
