@@ -87,19 +87,7 @@ _.extend($.fn, {
         return $(_.map(this, fn));
     },
     contents: function (ignoreEmptyTextNodes, ignoreComments) {
-        var children = $();
-
-        _.forEach(this[0].childNodes, function (child) {
-            if (ignoreEmptyTextNodes) {
-               if (child.nodeType === 3 && !utils.trim(child.nodeValue)) return;
-            }
-            if (ignoreComments) {
-                if (child.nodeType === 8) return;
-            }
-            children.push(child);
-        });
-
-        return children;
+        return $(Array.prototype.slice.call(this[0].childNodes));
     },
     text: function (value) {
         // Super bare implementation
@@ -275,6 +263,15 @@ _.extend($.fn, {
     forEach: function (fn) {
         _.forEach(this, fn);
         return this;
+    },
+    filterEmptyTextAndComments: function () {
+        var newArr = [];
+        this.forEach(function (child) {
+            if (child.nodeType === 3 && !utils.trim(child.nodeValue)) return;
+            if (child.nodeType === 8) return;
+            newArr.push(child);
+        });
+        return $(newArr);
     },
     hasAttr: function (name) {
         return this[0].hasAttribute(name);
