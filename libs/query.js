@@ -254,7 +254,8 @@ _.extend($.fn, {
     
 //     // Custom
     stringify: function () {
-        return this.html();
+        return cheerio.html(this);
+        
         // return _.map(this, function (el) {
         //     var serializer = new libs.XMLSerializer();
         //     return serializer.serializeToString(el);
