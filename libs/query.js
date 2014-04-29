@@ -200,6 +200,8 @@ _.extend($.fn, {
     
     // Custom
     stringify: function () {
+        // TODO: Should a serializer only get
+        // created once?
         return _.map(this, function (el) {
             var serializer = new libs.XMLSerializer();
             return serializer.serializeToString(el);
