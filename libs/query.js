@@ -19,6 +19,7 @@ function $(args) {
         // In html mode `<div /> test` would become
         // `<div>test</div>`
         //
+        // See xmlMode in https://github.com/fb55/htmlparser2/wiki/Parser-options
 
         return cheerio.load(args, {
             xmlMode: true,
