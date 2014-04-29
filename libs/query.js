@@ -263,13 +263,10 @@ _.extend($.fn, {
 //     },
     
 //     // Custom
+
+    // TODO Change to html and xml
     stringify: function () {
         return cheerio.xml(this);
-        
-        // return _.map(this, function (el) {
-        //     var serializer = new libs.XMLSerializer();
-        //     return serializer.serializeToString(el);
-        // }).join('');
     },
     getAttributes: function () {
         var attributes = {};
