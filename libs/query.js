@@ -117,10 +117,10 @@ module.exports = $;
 // // Plugins
 
 _.extend($.fn, {
-//     each: function (fn) {
-//         _.forEach(this, fn);
-//         return this;
-//     },
+    forEach: function (fn) {
+        _.forEach(this, fn);
+        return this;
+    },
 //     map: function (fn) {
 //         return $(_.map(this, fn));
 //     },
