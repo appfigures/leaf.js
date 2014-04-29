@@ -21,7 +21,8 @@ function $(args) {
         //
 
         return cheerio.load(args, {
-            xmlMode: true
+            xmlMode: true,
+            normalizeWhitespace: true
         }).root().contents();
     }
 
