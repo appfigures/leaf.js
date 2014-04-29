@@ -266,11 +266,45 @@ _.extend($.fn, {
     }
 });
 
+// NEW
+_.extend($.fn, {
+    forEach: function (fn) {
+        _.forEach(this, fn);
+        return this;
+    },
+    hasAttr: function (name) {
+        return this[0].hasAttribute(name);
+    },
+    attr: function (key, value) {
+        if (value === undefined) {
+            return this[0].getAttribute(key);
+        }
+
+        this[0].setAttribute(key, value);
+        return this;
+    },
+    removeAttr: function (name) {
+        return this.forEach(function (el) {
+            el.removeAttribute(name);
+        });
+    },
+    tagName: function () {
+        return this[0].tagName;
+    }
+});
+
 // Simple selectors
 (function () {
     $.fn.find = function (selector, rest) {
         var arr = [],
+            args;
+
+        if (arguments.length === 1) {
+            args = arguments;
+            selector = $.by.tag;
+        } else {
             args = Array.prototype.slice.call(arguments, 1, arguments.length);
+        }
 
         this.each(function (el) {
             var out = selector.apply(el, args);
