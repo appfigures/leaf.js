@@ -101,9 +101,13 @@ _.extend($.fn, {
 
         return children;
     },
-    text: function () {
+    text: function (value) {
         // Super bare implementation
-        return this[0].textContent;
+        if (value === undefined) {
+            return this[0].textContent;
+        } else {
+            this[0].textContent = value;
+        }
     },
     parent: function () {
         return this.map(function (el) {
@@ -275,6 +279,9 @@ _.extend($.fn, {
     hasAttr: function (name) {
         return this[0].hasAttribute(name);
     },
+    parent: function () {
+        return $(this[0].parentNode);
+    },
     attr: function (key, value) {
         if (value === undefined) {
             return this[0].getAttribute(key);
@@ -300,7 +307,7 @@ _.extend($.fn, {
             args;
 
         if (arguments.length === 1) {
-            args = arguments;
+            args = Array.prototype.slice.call(arguments);
             selector = $.by.tag;
         } else {
             args = Array.prototype.slice.call(arguments, 1, arguments.length);
