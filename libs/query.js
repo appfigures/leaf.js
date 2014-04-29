@@ -33,6 +33,8 @@ function $(args) {
 $.is = function (obj) {
     return obj instanceof cheerio;
 };
+// TEMP
+$.cheerio = true;
 
 $.fn = cheerio.prototype;
 
