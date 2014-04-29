@@ -20,14 +20,14 @@ globals.$.mergeElements.defaults.contentTagName = 'af-content';
 (function () {
     function setSource(el, source) {
         el.leafSource = source;
-        _.forEach(el.childNodes, function (child) {
+        _.forEach(el.children, function (child) {
             setSource(child, source);
         });
     }
 
     globals.$.fn.source = function (source) {
         if (source === undefined) return this[0].leafSource;
-        return this.each(function (el) {
+        return this.each(function (i, el) {
             setSource(el, source);
         });
     };

@@ -36,7 +36,7 @@ Directive.prototype = {
 
     matchesName: function (element) {
         var name = this.name,
-            tagName = element[0].tagName.toLowerCase();
+            tagName = element.tagName().toLowerCase();
 
         return (tagName === utils.toDashCase(name, '-') ||
             tagName === utils.toDashCase(name, '_'));
@@ -61,8 +61,8 @@ Directive.prototype = {
             element = template(context);
             element = $(element);
 
-            if (element[0].nodeType !== 1) {
-                throw new globals.errors.DOMParserError('Error parsing template for directive \'' + this.name + '\'. Parsed document must have nodeType 1 (has ' + element[0].nodeType + ' ' + element[0].nodeName + ').');
+            if (!element.isElement()) {
+                throw new globals.errors.DOMParserError('Error parsing template for directive \'' + this.name + '\'. Parsed document must have nodeType 1 (has ' + element.nodeType() + ' ' + element.tagName() + ').');
             }
 
             element.source(this.source || source);

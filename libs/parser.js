@@ -61,9 +61,9 @@ ParseSession.prototype = {
 // Look for inline modules
 function getTemplateModules (el) {
     var name = 'af-modules',
-        string = el[0].getAttribute(name);
+        string = el.attr(name);
 
-    el[0].removeAttribute(name);
+    el.removeAttr(name);
 
     return string ? string.split(' ') : [];
 }
@@ -104,7 +104,8 @@ function rawParse(input, options) {
 
     if (_.isString(input)) {
         element = $(utils.loadFile(input, options.cache)).source(options.source || input);
-    } else if (input instanceof $) {
+        // TODO: Check instanceof $
+    } else if ($.is(input)) {
         element = input;
         if (_.isString(options.source)) element.source(options.source);
     } else {
@@ -112,7 +113,7 @@ function rawParse(input, options) {
     }
 
     if (element.length < 1) throw new errors.DOMParserError('String couldn\'t be parsed for an unknown reason');
-    if (element[0].nodeType !== 1) throw new errors.DOMParserError('Parsed element must be of nodeType 1 (Element). It is ' + element[0].nodeType);
+    if (!element.isElement()) throw new errors.DOMParserError('Parsed element must be of nodeType 1 (Element). It is ' + element[0].nodeType);
 
     // Get the modules
     if (options.loadModulesConfig) {
@@ -152,7 +153,7 @@ function rawParse(input, options) {
 function transformElement(element, session, parentContext, directivesToIgnore) {
     // Get matching directive
     var directives = getMatchingDirectives(element, session, directivesToIgnore),
-        elementAlreadyReplaced = false, origParent = element[0].parentNode;
+        elementAlreadyReplaced = false, origParent = element[0].parent;
 
     if (directives.length > 0) {
         // Using every instead of forEach to allow
@@ -186,7 +187,9 @@ function transformElement(element, session, parentContext, directivesToIgnore) {
                 $.mergeElements(newElement[0], element[0], directive.mergeOptions);
 
                 // Replace the element in its parent
-                element.replaceWith(newElement);
+                if (element[0].parent) {
+                    element.replaceWith(newElement);
+                }                
             } else {
                 newElement = element;
             }
@@ -203,16 +206,16 @@ function transformElement(element, session, parentContext, directivesToIgnore) {
             // When we know this works, remove the comments.
 
             // If the element has deleted itself, stop processing
-            if (newElement[0].parentNode !== origParent) {
+            if (newElement[0].parent !== origParent) {
                 return false;
             }
 
             if (globals.debug) {
                 // Keep a record of the directives applied
                 // to this node
-                var dir = newElement[0].getAttribute('af-directive');
+                var dir = newElement.att('af-directive');
                 dir = dir ? dir + ' ' : '';
-                newElement[0].setAttribute('af-directive', dir + directive.name);
+                newElement.attr('af-directive', dir + directive.name);
             }
 
             // Run the new node through the compiler again, ignoring
@@ -225,7 +228,7 @@ function transformElement(element, session, parentContext, directivesToIgnore) {
         return element;
     } else {
         // Compile all the children
-        element.children().each(function (child) {
+        element.children().each(function (i, child) {
             transformElement($(child), session);
         });
         return element;
