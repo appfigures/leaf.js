@@ -129,6 +129,14 @@ _.extend($.fn, {
         _.forEach(this, fn);
         return this;
     },
+    filterEmptyTextAndComments: function () {
+        return this.filter(function (i, el) {
+            if (this.type === 'text' && !utils.trim(this.data)) return false;
+            if (this.type === 'comment') return false;
+
+            return true;
+        });
+    },
 //     map: function (fn) {
 //         return $(_.map(this, fn));
 //     },
@@ -254,7 +262,7 @@ _.extend($.fn, {
     
 //     // Custom
     stringify: function () {
-        return cheerio.html(this);
+        return cheerio.xml(this);
         
         // return _.map(this, function (el) {
         //     var serializer = new libs.XMLSerializer();
@@ -312,6 +320,19 @@ _.extend($.fn, {
 //             element.setAttribute(attrName, combineAttributes(element.getAttribute(attrName), attrValue));
 //         });
 //     }
+});
+
+// Fix for bug in cheerio (https://github.com/cheeriojs/cheerio/issues/469)
+var i = 0;
+function fix(fn, el) {
+    // ++i;
+    // console.log('fix', i);
+    // if (i === 8) debugger;
+    if (el.remove && el[0] && el[0].parent) el.remove();
+    fn.apply(this, Array.prototype.slice.call(arguments, 1));
+}
+['append', 'prepend', 'before', 'after'].forEach(function (name) {
+    $.fn[name] = _.wrap($.fn[name], fix);
 });
 
 // Simple selectors
