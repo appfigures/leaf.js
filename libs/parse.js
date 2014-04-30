@@ -1,8 +1,8 @@
 var _ = require('underscore'),
+    cheerio = require('cheerio'),
     utils = require('./utils'),
     errors = require('./errors'),
     globals = require('./globals'),
-    $ = require('./query'),
     Directive = require('./directive');
 
 // Undercore's compose can't accept
@@ -58,97 +58,6 @@ ParseSession.prototype = {
     }
 };
 
-// Look for inline modules
-function getTemplateModules (el) {
-    var name = 'af-modules',
-        string = el.attr(name);
-
-    el.removeAttr(name);
-
-    return string ? string.split(' ') : [];
-}
-
-function getExtModules(source, cache) {
-    var fileName = 'leaf-modules.js',
-        obj = utils.requireUp(fileName, source, cache);
-
-    if (!_.isObject(obj) || _.isArray(obj)) throw fileName + ' must export an object with moduleName -> fn mapping';
-    return obj;
-}
-
-/**
- * @param input (filePath<String>|domElement<leaf.$>)
- * @param options.modules ({moduleName: moduleFn, ...})
- */
-function rawParse(input, options) {
-    var session, element;
-
-    options = _.extend({
-        source: null,
-        cache: null,
-        // Optional custom modules
-        // Other than the global ones
-        modules: null,
-        // Search the source path and
-        // its ancestors for
-        // a leaf-modules.js file
-        loadModulesConfig: true,
-        // Optional function to
-        // mutate the session (function (session) {})
-        // TODO: Rename
-        fn: null
-    }, options);
-
-    options.cache = options.cache || new globals.Cache();
-    options.modules = options.modules || {};
-
-    if (_.isString(input)) {
-        element = $(utils.loadFile(input, options.cache)).source(options.source || input);
-        // TODO: Check instanceof $
-    } else if ($.is(input)) {
-        element = input;
-        if (_.isString(options.source)) element.source(options.source);
-    } else {
-        throw 'Parse input must be a file path or a $(dom_element)';
-    }
-
-    if (element.length < 1) throw new errors.DOMParserError('String couldn\'t be parsed for an unknown reason');
-    if (!element.isElement()) throw new errors.DOMParserError('Parsed element must be of nodeType 1 (Element). It is ' + element[0].nodeType);
-
-    // Get the modules
-    if (options.loadModulesConfig) {
-        options.modules = _.extend(
-            getExtModules(element.source(), options.cache),
-            options.modules
-        );
-    }
-
-    session = new ParseSession(options.modules);
-    session.options = options;
-    session.cache = options.cache;
-
-    // Load all the modules
-    getTemplateModules(element)
-        .forEach(function (moduleName) {
-            // Using .call to make it more obvious that
-            // session.module() returns a function. There's
-            // probably a less redundant way to show this though :)
-            session.module(moduleName).call(this, session);
-        });
-
-    // Execute the optional callback
-    if (options.fn) options.fn(session);
-
-    element = compose(session.transforms.pre)(element);
-    element = transformElement(element, session);
-    element = compose(session.transforms.post)(element);
-
-    return {
-        el: element,
-        session: session
-    };
-}
-
 // Parser internals
 function transformElement(element, session, parentContext, directivesToIgnore) {
     // Get matching directive
@@ -174,7 +83,7 @@ function transformElement(element, session, parentContext, directivesToIgnore) {
             //  directive's template, or use
             //  the existing node
             directive.prepare(context, element);
-            newElement = directive.parseTemplate(context, session.cache);
+            newElement = directive.parseTemplate(context, session);
 
             if (newElement) {
                 if (elementAlreadyReplaced) {
@@ -184,7 +93,7 @@ function transformElement(element, session, parentContext, directivesToIgnore) {
 
                 //  Merge the attributes and children from
                 //  the originalNode into the newNode
-                $.mergeElements(newElement[0], element[0], directive.mergeOptions);
+                utils.mergeElements(newElement[0], element[0], session.$, directive.mergeOptions);
 
                 // Replace the element in its parent
                 if (element[0].parent) {
@@ -229,11 +138,14 @@ function transformElement(element, session, parentContext, directivesToIgnore) {
     } else {
         // Compile all the children
         element.children().each(function (i, child) {
-            transformElement($(child), session);
+            transformElement(session.$(child), session);
         });
         return element;
     }
 }
+
+// Parse utils
+
 function getMatchingDirectives(el, session, directivesToIgnore) {
     var matchedDirectives = [];
     _.forEach(session.directives, function (directive) {
@@ -244,16 +156,117 @@ function getMatchingDirectives(el, session, directivesToIgnore) {
     return matchedDirectives;
 }
 
-// TODO: Make this just a single function
-// that returns a string. If the el needed, add
-// a transform fn.
-module.exports = {
-    parse: function (input, options) {
-        return rawParse(input, options).el;
-    },
-    stringify: function (input, options) {
-        var raw = rawParse(input, options),
-            string = raw.el.stringify();
-        return compose(raw.session.transforms.string)(string);
+// Look for inline modules
+function getTemplateModules (el) {
+    var name = 'af-modules',
+        string = el.attr(name);
+
+    el.removeAttr(name);
+
+    return string ? string.split(' ') : [];
+}
+
+function getExtModules(source, cache) {
+    var fileName = 'leaf-modules.js',
+        obj = utils.requireUp(fileName, source, cache);
+
+    if (!_.isObject(obj) || _.isArray(obj)) throw fileName + ' must export an object with moduleName -> fn mapping';
+    return obj;
+}
+
+/**
+ * @param input (filePath<String>|domElement<leaf.$>)
+ * @param options.modules ({moduleName: moduleFn, ...})
+ */
+function parse(input, options) {
+    var session, element, markup, $, string;
+
+    options = _.extend({
+        source: null,
+        // xml | html (same as .stringify())
+        outputFormat: 'xml',
+        // markup | file
+        inputType: 'markup',
+        cache: null,
+        // Optional custom modules
+        // Other than the global ones
+        modules: null,
+        // Search the source path and
+        // its ancestors for
+        // a leaf-modules.js file
+        loadModulesConfig: true,
+        // Optional function to
+        // mutate the session (function (session) {})
+        // TODO: Rename
+        fn: null,
+        cheerioOptions: {
+            xmlMode: true
+        }
+    }, options);
+
+    options.cache = options.cache || new globals.Cache();
+    options.modules = options.modules || {};
+
+    if (_.isString(input)) {
+        switch (options.inputType) {
+            case 'markup':
+                markup = input;
+                break;
+            case 'filePath':
+                markup = utils.loadFile(input, options.cache);
+                break;
+            default:
+                throw new TypeError('Invalid inputType ' + source.inputType);
+        }
+
+        $ = cheerio.load(markup, options.cheerioOptions);
+        element = $.root().children();
+        element.source(options.source || input);
+    } else if (input instanceof cheerio) {
+        $ = cheerio.load('', options.cheerioOptions);
+        element = input;
+        if (_.isString(options.source)) element.source(options.source);
+    } else {
+        throw 'Parse input must be a file path or a $(dom_element)';
     }
-};
+
+    if (element.length < 1) throw new errors.DOMParserError('String couldn\'t be parsed for an unknown reason');
+    if (!element.isElement()) throw new errors.DOMParserError('Parsed element must be of nodeType 1 (Element). It is ' + element[0].nodeType);
+
+    // Get the modules
+    if (options.loadModulesConfig) {
+        options.modules = _.extend(
+            getExtModules(element.source(), options.cache),
+            options.modules
+        );
+    }
+
+    session = new ParseSession(options.modules);
+    session.options = options;
+    session.cache = options.cache;
+    session.$ = $;
+
+    // Load all the modules
+    getTemplateModules(element)
+        .forEach(function (moduleName) {
+            // Using .call to make it more obvious that
+            // session.module() returns a function. There's
+            // probably a less redundant way to show this though :)
+            session.module(moduleName).call(this, session);
+        });
+
+    // Execute the optional callback
+    if (options.fn) options.fn(session);
+
+    element = compose(session.transforms.pre)(element);
+    element = transformElement(element, session);
+    element = compose(session.transforms.post)(element);
+
+    string = element.stringify(options.outputFormat);
+
+    string = compose(session.transforms.string)(string);
+
+    return string;
+}
+
+module.exports = parse;

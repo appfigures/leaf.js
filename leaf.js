@@ -1,47 +1,39 @@
-var globals = require('./libs/globals'),
-    xmldom = require('xmldom'),
-    _ = require('underscore');
+var _ = require('underscore'),
+    cheerio = require('cheerio'),
+    globals = require('./libs/globals');
 
-globals.$ = require('./libs/query');
 globals.utils = require('./libs/utils');
 globals.Cache = require('./libs/cache');
 globals.errors = require('./libs/errors');
-globals.parser = require('./libs/parser');
+globals.parse = require('./libs/parse');
 globals.ext = require('./libs/ext');
 globals.templates = require('./libs/templates');
 
+// TODO: Is this needed, should it be refactored?
 globals.use = function (fn) {
     fn(globals);
 };
 
-// globals
-globals.$.mergeElements.defaults.contentTagName = 'af-content';
-// $ plugin
-(function () {
-    function setSource(el, source) {
-        el.leafSource = source;
-        _.forEach(el.children, function (child) {
-            setSource(child, source);
-        });
-    }
+// Apply some plugins
+_.extend(cheerio.prototype, require('./libs/plugins'));
 
-    globals.$.fn.source = function (source) {
-        if (source === undefined) return this[0].leafSource;
-        return this.each(function (i, el) {
-            setSource(el, source);
-        });
-    };
+// Fix for bug in cheerio (https://github.com/cheeriojs/cheerio/issues/469)
+(function () {
+    function fix(fn, el) {
+        if (el.remove && el[0] && el[0].parent) el.remove();
+        fn.apply(this, Array.prototype.slice.call(arguments, 1));
+    }
+    ['append', 'prepend', 'before', 'after'].forEach(function (name) {
+        cheerio.prototype[name] = _.wrap(cheerio.prototype[name], fix);
+    });
 }());
+
+// globals
+globals.utils.mergeElements.defaults.contentTagName = 'af-content';
 
 //
 // Export
 //
 
-globals.ext.DOMParser = xmldom.DOMParser;
-globals.ext.XMLSerializer = xmldom.XMLSerializer;
-
-try {
-    globals.ext.templateCompiler = _.template;
-} catch (e) {}
-
+globals.ext.templateCompiler = _.template;
 module.exports = globals;

@@ -6,7 +6,10 @@ var path = require('path'),
 
 if (filePath) {
     filePath = path.resolve(process.cwd(), filePath);
-    console.log(leaf.parser.stringify(filePath));
+    // TODO: Read options
+    console.log(leaf.parse(filePath, {
+        inputType: 'filePath'
+    }));
 } else {
-    console.log('Usage: leaf path/to/file');
+    console.log('Usage: leaf path/to/file [options]');
 }

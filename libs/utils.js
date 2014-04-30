@@ -8,7 +8,7 @@ var path = require('path'),
     toDashCaseRegexp = /([A-Z])/g,
     utils;
 
-utils = {
+exports = module.exports = {
     _: _,
     // My very rough version
     isArrayLike: function (obj) {
@@ -79,4 +79,106 @@ utils = {
     }
 };
 
-module.exports = utils;
+// DOM utils
+
+(function () {
+    var combineAttributesRegexp = /\S+/gi;
+
+    function combineAttributes(dst, src) {
+        var value = dst || '',
+            values = [];
+
+        // Split on whitespace
+        value.replace(combineAttributesRegexp, function (value) {
+            values.push(value);
+        });
+
+        if (values.indexOf(src) >= 0) return;
+        values.push(src);
+        return values.join(' ');
+    }
+
+    // Merge all the src attributes into dst
+    // Ignore data-* attributes
+    // @param dst - DOMElement
+    // @param src - DOMElement | {attrName: value, ...}
+    function mergeAttributes (dst, src, options) {
+        options = _.extend({}, mergeAttributes.defaults, options);
+
+        function loop(value, name) {
+            var opFn, newValue;
+
+            // TODO: Expose this functionality
+            if (name.indexOf('data-') === 0) return;
+
+            // If there's a conflict, try to resolve it
+            if (src.attribs ? name in src.attribs : name in src) {
+                // Find the right op to use
+                opFn = options.attributes[name] || options.attributes['*'];
+                if (typeof opFn === 'string') opFn = options.ops[opFn];
+                if (!_.isFunction(opFn)) throw 'mergeElements: Operation not defined: ' + options.attributes[name];
+
+                newValue = opFn(dst.attribs[name], value);
+            } else {
+                // Otherwise just copy the attribute over
+                newValue = value;
+            }
+
+            dst.attribs[name] = newValue;
+        }
+
+        if (src.type) {
+            _.forEach(src.attribs, function (value, name) {
+                return loop(value, name);
+            });
+        } else {
+            _.forEach(src, loop);
+        }
+    }
+
+    mergeAttributes.defaults = {
+        attributes: {
+            'class': 'combine',
+            '*': 'src'
+        },
+        ops: {
+            'src': function (dstValue, srcValue) { return srcValue; },
+            'dst': function (dstValue, srcValue) { return srcValue; },
+            'combine': combineAttributes
+        }
+    };
+
+    // TODO: Does it make sense to pass in $? It's not used for
+    // parsing anything
+    function mergeElements (dst, src, $, options) {
+        var contentPlaceholder,
+            childrenFragment,
+            cNode, nextNode;
+
+        options = _.extend({}, mergeElements.defaults, options);
+
+        // console.log('merge:', $(src).stringify(), '->', $(dst).stringify());
+        if (options.attributes) {
+            mergeAttributes(dst, src, options.attrs);
+        }
+
+        // Replace the contentPlaceholder with the children
+        childrenFragment = $(src.children);
+
+        contentPlaceholder = $(dst).find(options.contentTagName);
+
+        if (contentPlaceholder.length > 0) {
+            contentPlaceholder.replaceWith(childrenFragment);
+        } else {
+            $(dst).append(childrenFragment);
+        }
+    }
+
+    mergeElements.defaults = {
+        contentTagName: 'content',
+        attributes: {}
+    };
+
+    exports.mergeAttributes = mergeAttributes;
+    exports.mergeElements = mergeElements;
+}());

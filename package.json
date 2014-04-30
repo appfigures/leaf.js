@@ -24,8 +24,7 @@
     "findup": "~0.1.5",
     "q": "~1.0.0",
     "tea-error": "~0.1.0",
-    "underscore": "~1.5.2",
-    "xmldom": "~0.1.17"
+    "underscore": "~1.5.2"
   },
   "devDependencies": {
     "grunt": "~0.4.2",

@@ -1,7 +1,6 @@
 var _ = require('underscore'),
     globals = require('./globals'),
     utils = require('./utils'),
-    $ = require('./query'),
     templates = require('./templates'),
     uid = 0;
 
@@ -43,8 +42,9 @@ Directive.prototype = {
     },
 
     // Compile my template into a node
-    parseTemplate: function (context, cache) {
-        var templateName = 'directive-template:' + this.name + this.uid,
+    parseTemplate: function (context, session) {
+        var cache = session.cache,
+            templateName = 'directive-template:' + this.name + this.uid,
             template = templates.get(templateName, cache),
             element, source;
 
@@ -59,7 +59,7 @@ Directive.prototype = {
             }
 
             element = template(context);
-            element = $(element);
+            element = session.$(element);
 
             if (!element.isElement()) {
                 throw new globals.errors.DOMParserError('Error parsing template for directive \'' + this.name + '\'. Parsed document must have nodeType 1 (has ' + element.nodeType() + ' ' + element.tagName() + ').');
