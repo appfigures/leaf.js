@@ -1,4 +1,4 @@
-var _ = require('underscore'),
+var _ = require('lodash'),
     cheerio = require('cheerio'),
     utils = require('./utils'),
     errors = require('./errors'),
@@ -181,7 +181,7 @@ function getExtModules(source, cache) {
 function parse(input, options) {
     var session, element, markup, $, string;
 
-    options = _.extend({
+    options = _.merge({
         source: null,
         // xml | html (same as .stringify())
         outputFormat: 'xml',

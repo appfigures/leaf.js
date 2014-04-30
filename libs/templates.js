@@ -1,4 +1,4 @@
-var _ = require('underscore'),
+var _ = require('lodash'),
     globals = require('./globals'),
     utils = require('./utils'),
     ext = require('./ext'),

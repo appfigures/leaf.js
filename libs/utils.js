@@ -1,5 +1,5 @@
 var path = require('path'),
-    _ = require('underscore'),
+    _ = require('lodash'),
     findup = require('findup'),
     globals = require('./globals'),
     cache = require('./cache'),

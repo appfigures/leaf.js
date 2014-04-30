@@ -2,7 +2,7 @@
 // Lite jQuery
 //
 
-var _ = require('underscore'),
+var _ = require('lodash'),
     cheerio = require('cheerio'),
     utils = require('./utils'),
     transformAttributeRegexp = /^(data|x)\-/i;
