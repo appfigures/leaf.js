@@ -9,18 +9,18 @@ var _ = require('lodash'),
 // 
 // Returns the parsed element before
 // string transformations are applied
-function toElement(input, options, transformation) {
+function toElement(input, options, transformName) {
     var element;
 
     if (typeof options === 'string') {
-        transformation = options;
+        transformName = options;
         options = null;
     }
 
     options = options || {};
-    transformation = transformation || 'pre';
+    transformName = transformName || 'pre';
 
-    options.fn = _.wrap(options.fn, function (origFn, session) {
+    options.transform = _.wrap(options.transform, function (origFn, session) {
         if (origFn) origFn.apply(this, arguments);
 
         session.transforms.post.push(function (el) {
@@ -122,9 +122,7 @@ describe ('parse', function () {
         describe ('.fn', function () {
             it ('should allow for mutating the session', function () {
                 var callback = sinon.spy();
-                parse('<div />', {
-                    fn: callback
-                });
+                parse('<div />', callback);
 
                 expect(callback).to.have.been
                     .calledOnce
@@ -140,7 +138,7 @@ describe ('parse', function () {
                             return module;
                         }
                     },
-                    fn: callback
+                    transform: callback
                 });
 
                 expect(callback).to.have.been.calledAfter(module);
@@ -226,7 +224,7 @@ describe ('parse', function () {
                 });
             }
 
-            string = parse('<sub-element data-value="5" />', { fn: module });
+            string = parse('<sub-element data-value="5" />', module);
 
             expect(string).to.contain('baseprop="5"');
         });
@@ -238,10 +236,8 @@ describe ('parse', function () {
                         tB = sinon.spy(_.identity),
                         tC = sinon.spy(_.identity);
 
-                    parse('<div />', {
-                        fn: function (session) {
-                            session.transforms[name].push(tA, tB, tC);
-                        }
+                    parse('<div />', function (session) {
+                        session.transforms[name].push(tA, tB, tC);
                     });
 
                     expect(tA).to.be.calledOnce;
@@ -254,50 +250,44 @@ describe ('parse', function () {
             });
 
             it ('should allow for injecting pre transformations', function () {
-                parse('<div />', {
-                    fn: function (session) {
-                        session.directive('div', {
-                            template: '<span />',
-                            logic: function (el) {
-                                expect(el.hasAttr('name')).to.be.true;
-                            }
-                        });
+                parse('<div />', function (session) {
+                    session.directive('div', {
+                        template: '<span />',
+                        logic: function (el) {
+                            expect(el.hasAttr('name')).to.be.true;
+                        }
+                    });
 
-                        session.transforms.pre.push(function (element) {
-                            element.attr('name', 'oz');
-                        });
-                    }
+                    session.transforms.pre.push(function (element) {
+                        element.attr('name', 'oz');
+                    });
                 });
             });
 
             it ('should allow for injecting post transformations', function () {
-                var string = parse('<div />', {
-                    fn: function (session) {
-                        session.directive('div', {
-                            template: '<span />',
-                            logic: function (el) {
-                                expect(el.hasAttr('name')).to.be.false;
-                            }
-                        });
+                var string = parse('<div />', function (session) {
+                    session.directive('div', {
+                        template: '<span />',
+                        logic: function (el) {
+                            expect(el.hasAttr('name')).to.be.false;
+                        }
+                    });
 
-                        session.transforms.post.push(function (element) {
-                            element.attr('name', 'oz');
-                        });
-                    }
+                    session.transforms.post.push(function (element) {
+                        element.attr('name', 'oz');
+                    });
                 });
 
                 expect(string).to.equal('<span name="oz"/>');
             });
 
             it ('should allow for injecting string transformations', function () {
-                var out = parse('<div />', {
-                    fn: function (session) {
-                        session.transforms.string.push(function (string) {
-                            string = string.replace(/</g, '{');
-                            string = string.replace(/>/g, '}');
-                            return string;
-                        });
-                    }
+                var out = parse('<div />', function (session) {
+                    session.transforms.string.push(function (string) {
+                        string = string.replace(/</g, '{');
+                        string = string.replace(/>/g, '}');
+                        return string;
+                    });
                 });
 
                 expect(out).to.equal('{div/}');

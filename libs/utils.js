@@ -23,6 +23,10 @@ exports = module.exports = {
     toCamelCase: function (string) {
         return string.replace(toCamelCaseRegexp, function($1){return $1.toUpperCase().replace('-','');});
     },
+    isHtmlString: function (string) {
+        if (typeof string !== 'string') return false;
+        return string.charAt(0) === '<';
+    },
     // Undercore's compose can't accept
     // arrays and it processes the list
     // in reverse order

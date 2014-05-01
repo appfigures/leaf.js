@@ -16,6 +16,9 @@ function Directive (params) {
     this.uid = uid++;
 }
 Directive.prototype = {
+
+    // Options
+
     // Camel case name
     name: null,
     // An xml string, a url, or a function
@@ -32,6 +35,22 @@ Directive.prototype = {
     source: null,
     // Optional options to pass to the mergeElements function
     mergeOptions: null,
+
+    //
+    // Overridable
+    //
+
+    // Can modify context. Can return a promise
+    prepare: function (context, originalElement) {/* empty */},
+    // Can return a promise
+    logic: function (el, context) {/* empty */},
+    matches: function (el) {
+        return this.matchesName(el);
+    },
+
+    //
+    // Protected
+    //
 
     matchesName: function (element) {
         var name = this.name,
@@ -53,7 +72,7 @@ Directive.prototype = {
         }
 
         if (template) {
-            if (typeof this.template === 'string' && this.template.charAt(0) !== '<') {
+            if (typeof this.template === 'string' && !utils.isHtmlString(this.template)) {
                 // Assume it's a url
                 source = this.template;
             }
@@ -71,18 +90,6 @@ Directive.prototype = {
         }
 
         return null;
-    },
-
-    //
-    // Overrideable
-    //
-
-    // Can modify context. Can return a promise
-    prepare: function (context, originalElement) {/* empty */},
-    // Can return a promise
-    logic: function (el, context) {/* empty */},
-    matches: function (el) {
-        return this.matchesName(el);
     }
 };
 
@@ -93,7 +100,7 @@ function resolveTemplate(template, cache) {
     if (_.isFunction(template)) return template;
 
     if (typeof template === 'string') {
-        if (template.charAt(0) === '<') {
+        if (utils.isHtmlString(template)) {
             return template;
         } else {
             return utils.loadFile(template, cache);

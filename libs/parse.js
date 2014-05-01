@@ -201,19 +201,27 @@ function getExtModules(source, cache) {
 }
 
 /**
- * parse(input [, options])
+ * parse(input [, transformFn] [, options])
  * 
  * @param input (filePath<String>|domElement<leaf.$>)
+ * @param A quick way to pass in options.fn. Takes precedence.
+ *      Added this as a param because it's useful for
+ *      writing quick tests.
  * @param options.modules ({moduleName: moduleFn, ...})
  */
-function parse(input, options) {
+function parse(input, transformFn, options) {
     var session, element, markup, $, string;
+
+    if (!_.isFunction(transformFn)) {
+        options = transformFn;
+        transformFn = null;
+    }
 
     options = _.merge({
         // How to parse the input
         // in case it's a string
-        // markup | file
-        inputType: 'markup',
+        // markup | file | null (auto)
+        inputType: null,
         source: null,
         // Optional custom modules
         // Other than the global ones
@@ -227,7 +235,7 @@ function parse(input, options) {
         // mutate the session (function (session) {})
         // Gets called AFTER all the modules
         // are loaded.  
-        fn: null, // TODO: Rename
+        transform: transformFn, // TODO: Rename
         cache: null,
         cheerioOptions: {
             xmlMode: true
@@ -240,6 +248,16 @@ function parse(input, options) {
     options.modules = options.modules || {};
 
     if (_.isString(input)) {
+
+        if (!options.inputType) {
+            // Make an educated guess
+            if (utils.isHtmlString(input)) {
+                options.inputType = 'markup';
+            } else {
+                options.inputType = 'filePath';
+            }
+        }
+
         switch (options.inputType) {
             case 'markup':
                 markup = input;
@@ -288,7 +306,7 @@ function parse(input, options) {
         });
 
     // Execute the optional callback
-    if (options.fn) options.fn(session);
+    if (options.transform) options.transform(session);
 
     element = utils.compose(session.transforms.pre)(element);
     element = transformElement(element, session);
@@ -300,5 +318,18 @@ function parse(input, options) {
 
     return string;
 }
+
+// Helpers to explicitly specify the
+// input type
+parse.string = function (input, options) {
+    return parse(input, _.extend({
+        inputType: 'markup'
+    }, options));
+};
+parse.file = function (input, options) {
+    return parse(input, _.extend({
+        inputType: 'filePath'
+    }, options));
+};
 
 module.exports = parse;
