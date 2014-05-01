@@ -7,8 +7,14 @@ module.exports = function(grunt) {
             }
         },
         watch: {
-            files: '<%= jshint.src %>',
-            tasks: ['jshint']
+            hint: {
+                files: '<%= jshint.src %>',
+                tasks: ['jshint']
+            },
+            test: {
+                files: ['libs/**/*', 'test/**/*'],
+                tasks: ['test']
+            }
         },
         mochaTest: {
             test: {

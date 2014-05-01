@@ -1,7 +1,3 @@
-//
-// Lite jQuery
-//
-
 var _ = require('lodash'),
     cheerio = require('cheerio'),
     utils = require('./utils'),
@@ -52,7 +48,7 @@ _.extend(exports, {
     },
     filterEmptyTextAndComments: function () {
         return this.filter(function (i, el) {
-            if (this.type === 'text' && !utils.trim(this.data)) return false;
+            if (this.type === 'text' && !(this.data + '').trim()) return false;
             if (this.type === 'comment') return false;
 
             return true;
@@ -121,6 +117,9 @@ _.extend(exports, {
         this.contents().wrapAll(wrapper);
     }
 });
+
+// Our old jQuery implementations
+// here for reference
 
 ////////////
 

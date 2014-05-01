@@ -2,6 +2,6 @@ var error = require('tea-error');
 
 module.exports = {};
 
-['DOMParserError'].forEach(function (name) {
+['DOMParserError', 'LeafParseError'].forEach(function (name) {
     module.exports[name] = error(name);
 });

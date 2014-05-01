@@ -1,23 +1,28 @@
 var _ = require('lodash'),
-    cheerio = require('cheerio'),
+    cheerio = require('./cheerio-leaf'),
     utils = require('./utils'),
     errors = require('./errors'),
     globals = require('./globals'),
+    Cache = require('./cache'),
     Directive = require('./directive');
 
-// Undercore's compose can't accept
-// arrays and it processes the list
-// in reverse order
-function compose(fnList) {
-    return function () {
-        var len = fnList.length, i,
-            args = arguments;
-        for (i = 0; i < len; ++i) {
-            args = [fnList[i].apply(this, args)];
+/*
+
+    Module structure:
+
+    // This outer function is known as the module factory
+    function (leaf) {
+        // This code always gets executed (once)
+
+        return function (session) {
+            // This code only gets executed if the module
+            // is referenced in the template's af-module attribute.
+
+            // This code runs once per parse() call.
         }
-        return args[0];
-    };
-}
+    }
+
+*/
 
 // 
 
@@ -31,7 +36,15 @@ function ParseSession(modules) {
     // Initialize the modules
     if (modules) {
         _.forEach(modules, function (fn, name) {
-            that.modules[name] = fn(globals);
+            var module;
+
+            if (!_.isFunction(fn)) throw new errors.LeafParseError('Module ' + name + ' is not a function. Valid structure is `function (leaf) { return function (session) { ... }; }');
+
+            module = fn(globals);
+
+            if (!_.isFunction(module)) throw new errors.LeafParseError('Module factory for \'' + name + '\' returns invalid type (' + typeof module + ') instead of a function');
+
+            that.modules[name] = module;
         });
     }
 
@@ -45,14 +58,27 @@ ParseSession.prototype = {
     globals: null,
     directives: null,
     transforms: null,
+    // {name -> moduleFn}
+    // See top of file for module fn structure
     modules: null,
     module: function (name) {
-        var module = this.modules[name] || globals.modules[name];
-        if (!module) throw 'Module not loaded ' + name;
+        var module = this.modules[name];
+        if (!module) {
+            throw new errors.LeafParseError('Module was not loaded ' + name);
+        }
         return module;
     },
+    // string, {} | string
     directive: function (name, props) {
-        var directive = new Directive(props);
+        var directive;
+
+        if (typeof props === 'string') {
+            props = {
+                template: props
+            };
+        }
+
+        directive = new Directive(props);
         directive.name = name;
         this.directives.push(directive);
     }
@@ -170,11 +196,13 @@ function getExtModules(source, cache) {
     var fileName = 'leaf-modules.js',
         obj = utils.requireUp(fileName, source, cache);
 
-    if (!_.isObject(obj) || _.isArray(obj)) throw fileName + ' must export an object with moduleName -> fn mapping';
+    if (!_.isObject(obj) || _.isArray(obj)) throw new errors.LeafParseError(fileName + ' must export an object with moduleName -> fn mapping');
     return obj;
 }
 
 /**
+ * parse(input [, options])
+ * 
  * @param input (filePath<String>|domElement<leaf.$>)
  * @param options.modules ({moduleName: moduleFn, ...})
  */
@@ -182,14 +210,14 @@ function parse(input, options) {
     var session, element, markup, $, string;
 
     options = _.merge({
-        source: null,
-        // xml | html (same as .stringify())
-        outputFormat: 'xml',
+        // How to parse the input
+        // in case it's a string
         // markup | file
         inputType: 'markup',
-        cache: null,
+        source: null,
         // Optional custom modules
         // Other than the global ones
+        // {name -> fn}
         modules: null,
         // Search the source path and
         // its ancestors for
@@ -197,14 +225,18 @@ function parse(input, options) {
         loadModulesConfig: true,
         // Optional function to
         // mutate the session (function (session) {})
-        // TODO: Rename
-        fn: null,
+        // Gets called AFTER all the modules
+        // are loaded.  
+        fn: null, // TODO: Rename
+        cache: null,
         cheerioOptions: {
             xmlMode: true
-        }
+        },
+        // xml | html (same as .stringify())
+        outputFormat: 'xml'
     }, options);
 
-    options.cache = options.cache || new globals.Cache();
+    options.cache = options.cache || new Cache();
     options.modules = options.modules || {};
 
     if (_.isString(input)) {
@@ -216,18 +248,18 @@ function parse(input, options) {
                 markup = utils.loadFile(input, options.cache);
                 break;
             default:
-                throw new TypeError('Invalid inputType ' + source.inputType);
+                throw new TypeError('Invalid inputType ' + options.inputType);
         }
 
         $ = cheerio.load(markup, options.cheerioOptions);
-        element = $.root().children();
+        element = $.root().contents();
         element.source(options.source || input);
     } else if (input instanceof cheerio) {
         $ = cheerio.load('', options.cheerioOptions);
         element = input;
         if (_.isString(options.source)) element.source(options.source);
     } else {
-        throw 'Parse input must be a file path or a $(dom_element)';
+        throw new TypeError('input must be a string or a $(dom_element)');
     }
 
     if (element.length < 1) throw new errors.DOMParserError('String couldn\'t be parsed for an unknown reason');
@@ -258,13 +290,13 @@ function parse(input, options) {
     // Execute the optional callback
     if (options.fn) options.fn(session);
 
-    element = compose(session.transforms.pre)(element);
+    element = utils.compose(session.transforms.pre)(element);
     element = transformElement(element, session);
-    element = compose(session.transforms.post)(element);
+    element = utils.compose(session.transforms.post)(element);
 
     string = element.stringify(options.outputFormat);
 
-    string = compose(session.transforms.string)(string);
+    string = utils.compose(session.transforms.string)(string);
 
     return string;
 }

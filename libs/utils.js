@@ -3,7 +3,6 @@ var path = require('path'),
     findup = require('findup'),
     globals = require('./globals'),
     cache = require('./cache'),
-    trimRegexp = /^[\ \t\r\n]+|[\ \t\r\n]+$/ig,
     toCamelCaseRegexp = /(\-[a-z])/g,
     toDashCaseRegexp = /([A-Z])/g,
     utils;
@@ -14,9 +13,6 @@ exports = module.exports = {
     isArrayLike: function (obj) {
         return (obj instanceof Array) || (typeof obj !== 'string' && typeof obj.length === 'number');
     },
-    trim: function (string) {
-        return string.replace(trimRegexp, '');
-    },
     toDashCase: function (string, separator) {
         separator = separator || '-';
         return string.replace(toDashCaseRegexp, function($1){return separator + $1.toLowerCase();});
@@ -26,6 +22,22 @@ exports = module.exports = {
     },
     toCamelCase: function (string) {
         return string.replace(toCamelCaseRegexp, function($1){return $1.toUpperCase().replace('-','');});
+    },
+    // Undercore's compose can't accept
+    // arrays and it processes the list
+    // in reverse order
+    compose: function (fnList) {
+        return function () {
+            var len = fnList.length, i,
+                args = arguments,
+                out;
+            for (i = 0; i < len; ++i) {
+                out = fnList[i].apply(this, args);
+                if (out === undefined) out = args[0];
+                args = [out];
+            }
+            return args[0];
+        };
     },
     loadFile: function (path, cache) {
         var fileCache = cache.ns('leaf-files'),
