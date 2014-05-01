@@ -1,7 +1,7 @@
 var _ = require('lodash'),
-    globals = require('./globals'),
     utils = require('./utils'),
     templates = require('./templates'),
+    errors = require('./errors'),
     uid = 0;
 
 //
@@ -80,8 +80,14 @@ Directive.prototype = {
             element = template(context);
             element = session.$(element);
 
+            if (element.length === 0) {
+                throw new errors.LeafDirectiveError('Directive template for ' + this.name + ' could not be parsed');
+            }
+            if (element.length > 1) {
+                throw new errors.LeafDirectiveError('Directive template for ' + this.name + ' must have just one root element (has ' + element.length + ')');
+            }
             if (!element.isElement()) {
-                throw new globals.errors.DOMParserError('Error parsing template for directive \'' + this.name + '\'. Parsed document must have nodeType 1 (has ' + element.nodeType() + ' ' + element.tagName() + ').');
+                throw new errors.LeafDirectiveError('Error parsing template for directive \'' + this.name + '\'. Parsed document must be an element (has ' + element.nodeType() + ' ' + element.tagName() + ').');
             }
 
             element.source(this.source || source);

@@ -15,6 +15,12 @@ _.extend(exports, {
         var type = this[0].type;
         return type === 'tag' || type === 'style';
     },
+    commentValue: function () {
+        if (this[0].type === 'comment') {
+            return this[0].data;
+        }
+        return '';
+    },
     tagName: function () {
         return this[0].name;
     },

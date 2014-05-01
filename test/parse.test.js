@@ -34,14 +34,6 @@ function toElement(input, options, transformName) {
     return element;
 }
 
-function parseFile(filePath, options) {
-    options = _.extend({
-        inputType: 'filePath'
-    }, options);
-
-    return parse(filePath, options);
-}
-
 function resolve(filePath) {
     return path.resolve(__dirname, filePath);
 }
@@ -89,7 +81,7 @@ describe ('parse', function () {
                 });
                 var innerSpy = sinon.spy();
 
-                parse('<div af-modules="testModule" />', {
+                parse('<!-- modules: testModule -->', {
                     modules: {
                         testModule: outerSpy
                     }
@@ -102,7 +94,7 @@ describe ('parse', function () {
 
             it ('should complain when a module is not a function', function () {
                 expect(function () {
-                    parse('<div af-modules="myModule" />', {
+                    parse('<!-- modules: myModule -->', {
                         modules: {
                             'myModule': 'invalidParam'
                         }
@@ -114,7 +106,7 @@ describe ('parse', function () {
         describe ('.loadModulesConfig', function () {
             it ('should load modules from the nearest leaf-modules.js file', function () {
                 expect(function () {
-                    parseFile(fixtures.simpleProject); // fixtures/custom-module
+                    parse.file(fixtures.simpleProject); // fixtures/custom-module
                 }).not.to.throw(errors.LeafParseError, /module.*not.*customModule/i);
             });
         });
@@ -132,7 +124,7 @@ describe ('parse', function () {
                 var module = sinon.spy(),
                     callback = sinon.spy();
 
-                parse('<div af-modules="testModule" />', {
+                parse('<!-- modules: testModule -->', {
                     modules: {
                         testModule: function (leaf) {
                             return module;
@@ -151,7 +143,7 @@ describe ('parse', function () {
 
                 expect(cache.size()).to.equal(0);
 
-                parseFile(fixtures.simpleProject, {
+                parse.file(fixtures.simpleProject, {
                     cache: cache
                 });
 
@@ -203,30 +195,30 @@ describe ('parse', function () {
             expect(parse(string)).to.equal(string);
         });
 
+        it ('should work with a simple string', function () {
+            expect(parse.string('a')).to.equal('a');
+        });
+
         it ('should accept a DOM element as input', function () {
             var el = $('<span />');
             expect(parse(el)).to.equal('<span/>');
         });
 
-        it ('should propagate attributes to inner directives', function () {
-            var string;
+        it ('should parse required modules from first comment', function () {
+            var str = '<!-- modules: myModule --><div />',
+                spy = sinon.spy();
 
-            function module (session) {
-                session.directive('baseElement', {
-                    template: '<node baseprop="<%= value %>" />',
-                    context: {
-                        value: 'default'
-                    }
-                });
-
-                session.directive('subElement', {
-                    template: '<base-element />'
-                });
+            function myModule (leaf) {
+                return spy;
             }
 
-            string = parse('<sub-element data-value="5" />', module);
+            parse(str, {
+                modules: {
+                    myModule: myModule
+                }
+            });
 
-            expect(string).to.contain('baseprop="5"');
+            expect(spy).to.have.been.calledOnce;
         });
 
         describe ('transforms', function () {
@@ -297,13 +289,13 @@ describe ('parse', function () {
         describe ('errors', function () {
             it ('should complain when a module is not loaded', function () {
                 expect(function () {
-                    parse('<div af-modules="moduleX" />');
+                    parse('<!-- modules: moduleX -->');
                 }).to.throw(errors.LeafParseError, /not loaded.*moduleX/i);
             });
 
             it ('should complain when a module factory isn\'t structured properly', function () {
                 expect(function () {
-                    parse('<div af-modules="moduleX" />', {
+                    parse('<!-- modules: moduleX -->', {
                         modules: {
                             moduleX: function () { }
                         }
@@ -320,6 +312,29 @@ describe ('parse', function () {
                 // .to.throw(leaf.errors.DOMParserError)
                 // .and.to.throw('nodeType 1');
             });
+        });
+    });
+
+    describe ('transformation', function () {
+        it ('should propagate attributes to inner directives', function () {
+            var string;
+
+            function module (session) {
+                session.directive('baseElement', {
+                    template: '<node baseprop="<%= value %>" />',
+                    context: {
+                        value: 'default'
+                    }
+                });
+
+                session.directive('subElement', {
+                    template: '<base-element />'
+                });
+            }
+
+            string = parse('<sub-element data-value="5" />', module);
+
+            expect(string).to.contain('baseprop="5"');
         });
     });
 });

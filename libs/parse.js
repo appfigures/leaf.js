@@ -57,6 +57,7 @@ function ParseSession(modules) {
 ParseSession.prototype = {
     globals: null,
     directives: null,
+    // TODO: Is there a better name for these? mutators?
     transforms: null,
     // {name -> moduleFn}
     // See top of file for module fn structure
@@ -183,13 +184,22 @@ function getMatchingDirectives(el, session, directivesToIgnore) {
 }
 
 // Look for inline modules
+// First element should be a comment with
+// <!-- modules: x, y, z -->
 function getTemplateModules (el) {
-    var name = 'af-modules',
-        string = el.attr(name);
+    var out, text;
 
-    el.removeAttr(name);
+    el = el.first();
+    if (el.nodeType() === 'comment') {
+        text = el.commentValue().trim();
+        if (text.indexOf('modules:') === 0) {
+            out = text.substr('modules:'.length).split(',').map(function (str) {
+                return str.trim();
+            });
+        }
+    }
 
-    return string ? string.split(' ') : [];
+    return out || [];
 }
 
 function getExtModules(source, cache) {
@@ -234,7 +244,7 @@ function parse(input, transformFn, options) {
         // Optional function to
         // mutate the session (function (session) {})
         // Gets called AFTER all the modules
-        // are loaded.  
+        // are loaded.
         transform: transformFn, // TODO: Rename
         cache: null,
         cheerioOptions: {
@@ -251,7 +261,7 @@ function parse(input, transformFn, options) {
 
         if (!options.inputType) {
             // Make an educated guess
-            if (utils.isHtmlString(input)) {
+            if (!input || utils.isHtmlString(input)) {
                 options.inputType = 'markup';
             } else {
                 options.inputType = 'filePath';
@@ -281,7 +291,6 @@ function parse(input, transformFn, options) {
     }
 
     if (element.length < 1) throw new errors.DOMParserError('String couldn\'t be parsed for an unknown reason');
-    if (!element.isElement()) throw new errors.DOMParserError('Parsed element must be of nodeType 1 (Element). It is ' + element[0].nodeType);
 
     // Get the modules
     if (options.loadModulesConfig) {
