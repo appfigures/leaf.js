@@ -1,13 +1,13 @@
 describe('utils', function () {
     var utils = require('../libs/utils');
 
-    describe('toDashCase', function () {
+    describe('.toDashCase', function () {
         it('should convert camel case', function () {
             expect(utils.toDashCase('aSimpleString')).to.equal('a-simple-string');
         });
     });
 
-    describe ('compose', function () {
+    describe ('.compose', function () {
         it ('should be ok for methods in the chains to return undefined', function () {
             var out = utils.compose([
                 function (str) {

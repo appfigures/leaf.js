@@ -24,7 +24,8 @@
     "findup": "~0.1.5",
     "lodash": "^2.4.1",
     "q": "~1.0.0",
-    "tea-error": "~0.1.0"
+    "tea-error": "~0.1.0",
+    "yargs": "^1.2.1"
   },
   "devDependencies": {
     "chai": "~1.8.1",

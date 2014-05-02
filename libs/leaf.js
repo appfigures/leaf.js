@@ -1,23 +1,17 @@
-var _ = require('lodash'),
-    globals = require('./libs/globals');
+var globals = require('./globals');
 
-globals.utils = require('./libs/utils');
-globals.Cache = require('./libs/cache');
-globals.errors = require('./libs/errors');
-globals.parse = require('./libs/parse');
-globals.ext = require('./libs/ext');
-globals.templates = require('./libs/templates');
-
-// TODO: Is this needed, should it be refactored?
-globals.use = function (fn) {
-    fn(module.exports);
+module.exports = {
+    // main method
+    parse: require('./parse'),
+    // global modules
+    modules: globals.modules,
+    templates: require('./templates'),
+    utils: require('./utils'),
+    Cache: require('./cache'),
+    errors: require('./errors'),
+    ext: require('./ext'),
+    debug: function (value) {
+        if (value === undefined) return globals.debug;
+        globals.debug = false;
+    }
 };
-
-// globals
-globals.utils.mergeElements.defaults.contentTagName = 'af-content';
-
-//
-// Export
-//
-
-module.exports = globals;

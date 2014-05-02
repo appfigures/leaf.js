@@ -8,23 +8,29 @@ var _ = require('lodash'),
 
 /*
 
-    Module structure:
+Leaf module structure:
 
-    // This outer function is known as the module factory
-    function (leaf) {
-        // This code always gets executed (once)
+// This outer function is known as the module factory
+function (leaf) {
+    // This code always gets executed (once)
 
-        return function (session) {
-            // This code only gets executed if the module
-            // is referenced in the template's af-module attribute.
+    return function (session) {
+        // This code only gets executed if the module
+        // is referenced in the template's af-module attribute.
 
-            // This code runs once per parse() call.
-        }
+        // This code runs once per leaf.parse() call.
     }
+}
 
 */
 
-// 
+
+/**
+    An object that lives for the lifetime
+    of the parsing process (an async process).
+    Holds all information that should be shared
+    across directives.
+*/
 
 function ParseSession(modules) {
     var that = this;
@@ -40,7 +46,8 @@ function ParseSession(modules) {
 
             if (!_.isFunction(fn)) throw new errors.LeafParseError('Module ' + name + ' is not a function. Valid structure is `function (leaf) { return function (session) { ... }; }');
 
-            module = fn(globals);
+            // Pass the leaf object along
+            module = fn(require('../'));
 
             if (!_.isFunction(module)) throw new errors.LeafParseError('Module factory for \'' + name + '\' returns invalid type (' + typeof module + ') instead of a function');
 
@@ -55,21 +62,33 @@ function ParseSession(modules) {
     };
 }
 ParseSession.prototype = {
+    //
+    // Public
+    //
+
+    // A place for directives
+    // and modules to store meta data
     globals: null,
-    directives: null,
-    // TODO: Is there a better name for these? mutators?
+
+    // Inject behavior to the parsing
+    // process at different points.
+    //
+    // Structure:
+    // {
+    //      pre: [function, ...]
+    //          Mutate the root dom
+    //          element before parsing
+    //      post: [function, ...]
+    //          Mutate the root dom element
+    //          after parsing
+    //      string: [function, ...]
+    //          Mutate the output string
+    // }
     transforms: null,
-    // {name -> moduleFn}
-    // See top of file for module fn structure
-    modules: null,
-    module: function (name) {
-        var module = this.modules[name];
-        if (!module) {
-            throw new errors.LeafParseError('Module was not loaded ' + name);
-        }
-        return module;
-    },
-    // string, {} | string
+
+    // Define a directive.
+    // @param name A camel cased name
+    // @param props {} (directive options) | templateString | logicFn | false (remove matched element)
     directive: function (name, props) {
         var directive;
 
@@ -77,19 +96,55 @@ ParseSession.prototype = {
             props = {
                 template: props
             };
+        } else if (_.isFunction(props)) {
+            props = {
+                logic: props
+            };
+        } else if (props === false) {
+            // Remove matched element
+            props = {
+                logic: function () { return false; }
+            };
         }
 
         directive = new Directive(props);
         directive.name = name;
         this.directives.push(directive);
-    }
+    },
+
+    // Retrieve a module from this session or
+    // leaf.modules. Can be used to share
+    // functionality across modules
+    module: function (name) {
+        var module = this.modules[name] || globals.modules[name];
+        if (!module) {
+            throw new errors.LeafParseError('Module \'' + name + '\' was not found. Make sure it exists in options.modules, a local leaf-modules.js file, or the global leaf.modules object.' + name);
+        }
+        return module;
+    },
+
+    //
+    // private
+    //
+
+    // All defined directives
+    directives: null,
+
+    // All modules defined for this session.
+    // {name -> moduleFn}
+    // See top of file for module fn structure
+    modules: null
 };
 
 // Parser internals
+// @param element must have a length of 1
+// @return is expected to have a length of 1
 function transformElement(element, session, parentContext, directivesToIgnore) {
+    if (element.length !== 1) throw new TypeError('Cannot transformElement an $(element) with more or less than one item');
+
     // Get matching directive
     var directives = getMatchingDirectives(element, session, directivesToIgnore),
-        elementAlreadyReplaced = false, origParent = element[0].parent;
+        elementAlreadyReplaced = false;
 
     if (directives.length > 0) {
         // Using every instead of forEach to allow
@@ -120,36 +175,30 @@ function transformElement(element, session, parentContext, directivesToIgnore) {
 
                 //  Merge the attributes and children from
                 //  the originalNode into the newNode
-                utils.mergeElements(newElement[0], element[0], session.$, directive.mergeOptions);
+                utils.mergeElements(newElement[0], element[0], directive.mergeOptions);
 
                 // Replace the element in its parent
-                if (element[0].parent) {
-                    element.replaceWith(newElement);
-                }                
+                // if (element[0].parent) {
+                element.replaceWith(newElement);
+                // }                
             } else {
                 newElement = element;
             }
 
-            //  Run the directive's logic
-            directive.logic(newElement, context);//, session);
-            // ^ Took out session because it contains information
-            // which the directive shouldn't have access to such as
-            // other directives and transformations. The only thing
-            // that session has which the directive might need is the
-            // globals object. We can pass that in explicity if needed
-            // though right now it's also passed into context.$globals
-            // (to be used inside of directive templates).
-            // When we know this works, remove the comments.
+            // Run the directive's logic. If it returns
+            // false, remove the element
+            if (directive.logic(newElement, context) === false) {
+                element.remove();
+                element = session.$();
 
-            // If the element has deleted itself, stop processing
-            if (newElement[0].parent !== origParent) {
+                // Quick exit
                 return false;
             }
 
             if (globals.debug) {
                 // Keep a record of the directives applied
                 // to this node
-                var dir = newElement.att('af-directive');
+                var dir = newElement.attr('af-directive');
                 dir = dir ? dir + ' ' : '';
                 newElement.attr('af-directive', dir + directive.name);
             }
@@ -186,12 +235,12 @@ function getMatchingDirectives(el, session, directivesToIgnore) {
 // Look for inline modules
 // First element should be a comment with
 // <!-- modules: x, y, z -->
-function getTemplateModules (el) {
-    var out, text;
+function getTemplateModules (root) {
+    var out, text, first;
 
-    el = el.first();
-    if (el.nodeType() === 'comment') {
-        text = el.commentValue().trim();
+    first = root.first();
+    if (first.isComment()) {
+        text = first.commentValue().trim();
         if (text.indexOf('modules:') === 0) {
             out = text.substr('modules:'.length).split(',').map(function (str) {
                 return str.trim();
@@ -210,17 +259,30 @@ function getExtModules(source, cache) {
     return obj;
 }
 
+// For debugging
+function getTagNames(els) {
+    return _.map(els, function (el) {
+        if (el.name) return '<' + el.name + '/>';
+        if (el.type) return '[' + el.type + ']';
+        return '(unknown)';
+    }).join(',');
+}
+
 /**
  * parse(input [, transformFn] [, options])
+ *
+ * x It's important to note that the element object
+ * x passed to transformation functions is the root
+ * x of the tree and does not undergo any transformations.
  * 
- * @param input (filePath<String>|domElement<leaf.$>)
+ * @param input (filePath<String>|markup<String>|domElement<cheerio()>)
  * @param A quick way to pass in options.fn. Takes precedence.
  *      Added this as a param because it's useful for
  *      writing quick tests.
  * @param options.modules ({moduleName: moduleFn, ...})
  */
 function parse(input, transformFn, options) {
-    var session, element, markup, $, string;
+    var session, root, markup, $, templateModules, string;
 
     if (!_.isFunction(transformFn)) {
         options = transformFn;
@@ -245,7 +307,7 @@ function parse(input, transformFn, options) {
         // mutate the session (function (session) {})
         // Gets called AFTER all the modules
         // are loaded.
-        transform: transformFn, // TODO: Rename
+        transform: transformFn,
         cache: null,
         cheerioOptions: {
             xmlMode: true
@@ -280,22 +342,36 @@ function parse(input, transformFn, options) {
         }
 
         $ = cheerio.load(markup, options.cheerioOptions);
-        element = $.root().contents();
-        element.source(options.source || input);
+        root = $.root().contents();
+        if (root.length < 1) throw new errors.DOMParserError('Input couldn\'t be parsed for an unknown reason');
+
+        root.source(options.source || input);
     } else if (input instanceof cheerio) {
         $ = cheerio.load('', options.cheerioOptions);
-        element = input;
-        if (_.isString(options.source)) element.source(options.source);
+        root = input;
+        if (_.isString(options.source)) root.source(options.source);
     } else {
         throw new TypeError('input must be a string or a $(dom_element)');
     }
 
-    if (element.length < 1) throw new errors.DOMParserError('String couldn\'t be parsed for an unknown reason');
+    // Look for <!-- modules: x, y, z -->
+    templateModules = getTemplateModules(root);
 
-    // Get the modules
+    // Filter out all the junk
+    root = root.filterEmptyTextAndComments();
+
+    // Make sure only one root node is left
+    if (root.length <= 0) throw new TypeError('input must not be an empty dom');
+    if (root.length > 1) {
+        throw new errors.LeafParseError('Input must have a single root node. Has (' + getTagNames(root) + ')');
+    }
+
+    // Get the modules from an external
+    // file somewhere up the fille hierarchy from
+    // the source
     if (options.loadModulesConfig) {
         options.modules = _.extend(
-            getExtModules(element.source(), options.cache),
+            getExtModules(root.source(), options.cache),
             options.modules
         );
     }
@@ -306,22 +382,20 @@ function parse(input, transformFn, options) {
     session.$ = $;
 
     // Load all the modules
-    getTemplateModules(element)
-        .forEach(function (moduleName) {
-            // Using .call to make it more obvious that
-            // session.module() returns a function. There's
-            // probably a less redundant way to show this though :)
-            session.module(moduleName).call(this, session);
-        });
+    templateModules.forEach(function (moduleName) {
+        var fn = session.module(moduleName);
+        fn(session);
+    });
 
     // Execute the optional callback
     if (options.transform) options.transform(session);
 
-    element = utils.compose(session.transforms.pre)(element);
-    element = transformElement(element, session);
-    element = utils.compose(session.transforms.post)(element);
+    root = utils.compose(session.transforms.pre)(root);
 
-    string = element.stringify(options.outputFormat);
+    root = transformElement(root, session);
+
+    root = utils.compose(session.transforms.post)(root);
+    string = root.stringify(options.outputFormat);
 
     string = utils.compose(session.transforms.string)(string);
 

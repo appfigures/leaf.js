@@ -150,3 +150,7 @@ The session.globals object lets directives share values, and for modules to comm
 		// parse('<container />') => <table width="100"/>
 		// parse('<container width="300">') => <table width="300"/>
 	}
+
+## Known Issues
+
+cheerio's dom manipulation functions will throw errors when trying to manipulate the children of text/comment/etc elements.

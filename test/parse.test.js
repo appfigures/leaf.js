@@ -3,7 +3,8 @@ var _ = require('lodash'),
     parse = require('../libs/parse'),
     Cache = require('../libs/cache'),
     $ = require('../libs/cheerio-leaf'),
-    errors = require('../libs/errors');
+    errors = require('../libs/errors'),
+    globals = require('../libs/globals');
 
 // @params input [,options] [, transformation]
 // 
@@ -81,7 +82,7 @@ describe ('parse', function () {
                 });
                 var innerSpy = sinon.spy();
 
-                parse('<!-- modules: testModule -->', {
+                parse('<!-- modules: testModule --><div />', {
                     modules: {
                         testModule: outerSpy
                     }
@@ -92,9 +93,19 @@ describe ('parse', function () {
                 expect(outerSpy).to.have.been.calledBefore(innerSpy);
             });
 
+            it ('should remove modules comment from the output', function () {
+                expect(parse('<!-- modules: myModule --><div />', {
+                    modules: {
+                        'myModule': function () {
+                            return function () {};
+                        }
+                    }
+                })).to.equal('<div/>');
+            });
+
             it ('should complain when a module is not a function', function () {
                 expect(function () {
-                    parse('<!-- modules: myModule -->', {
+                    parse('<!-- modules: myModule --><div />', {
                         modules: {
                             'myModule': 'invalidParam'
                         }
@@ -111,7 +122,7 @@ describe ('parse', function () {
             });
         });
 
-        describe ('.fn', function () {
+        describe ('.transform', function () {
             it ('should allow for mutating the session', function () {
                 var callback = sinon.spy();
                 parse('<div />', callback);
@@ -124,7 +135,7 @@ describe ('parse', function () {
                 var module = sinon.spy(),
                     callback = sinon.spy();
 
-                parse('<!-- modules: testModule -->', {
+                parse('<!-- modules: testModule --><div />', {
                     modules: {
                         testModule: function (leaf) {
                             return module;
@@ -153,18 +164,18 @@ describe ('parse', function () {
 
         describe ('.cheerioOptions', function () {
             it ('should pass cheerio options along', function () {
-                expect(parse('<span />test', {
+                expect(parse('<root><span />test</root>', {
                     cheerioOptions: {
                         xmlMode: false
                     }
-                })).to.equal('<span>test</span>');
+                })).to.equal('<root><span>test</span></root>');
 
                 
-                expect(parse('<span />test', {
+                expect(parse('<root><span />test</root>', {
                     cheerioOptions: {
                         xmlMode: true
                     }
-                })).to.equal('<span/>test');
+                })).to.equal('<root><span/>test</root>');
             });
         });
 
@@ -219,6 +230,21 @@ describe ('parse', function () {
             });
 
             expect(spy).to.have.been.calledOnce;
+        });
+
+        describe ('global modules', function () {
+            beforeEach(function () {
+                globals.modules.custom = function (session) {
+                    session.directive('element', false);
+                };
+            });
+            afterEach(function () {
+                delete globals.modules.custom;
+            });
+
+            it ('should read from global modules', function () {
+                expect(parse('<!-- modules: custom --><element />')).to.equal('');
+            });
         });
 
         describe ('transforms', function () {
@@ -287,15 +313,15 @@ describe ('parse', function () {
         });
 
         describe ('errors', function () {
-            it ('should complain when a module is not loaded', function () {
+            it ('should complain when a module is not found', function () {
                 expect(function () {
-                    parse('<!-- modules: moduleX -->');
-                }).to.throw(errors.LeafParseError, /not loaded.*moduleX/i);
+                    parse('<!-- modules: moduleX --><div />');
+                }).to.throw(errors.LeafParseError, /not found.*moduleX/i);
             });
 
             it ('should complain when a module factory isn\'t structured properly', function () {
                 expect(function () {
-                    parse('<!-- modules: moduleX -->', {
+                    parse('<!-- modules: moduleX --><div />', {
                         modules: {
                             moduleX: function () { }
                         }
@@ -303,38 +329,17 @@ describe ('parse', function () {
                 }).to.throw(errors.LeafParseError, /moduleX.*invalid type/i);
             });
 
-            it('should complain about incorrect html node type', function () {
-                // expect(function () {
-                //     leaf.parser.parse({
-                //         xmlString: '<a'
-                //     });
-                // })
-                // .to.throw(leaf.errors.DOMParserError)
-                // .and.to.throw('nodeType 1');
+            it ('should complain when there is more than one root element', function () {
+                expect(function () {
+                    parse('<div /><div />');
+                }).to.throw(errors.LeafParseError, /single root/i);
             });
-        });
-    });
 
-    describe ('transformation', function () {
-        it ('should propagate attributes to inner directives', function () {
-            var string;
-
-            function module (session) {
-                session.directive('baseElement', {
-                    template: '<node baseprop="<%= value %>" />',
-                    context: {
-                        value: 'default'
-                    }
-                });
-
-                session.directive('subElement', {
-                    template: '<base-element />'
-                });
-            }
-
-            string = parse('<sub-element data-value="5" />', module);
-
-            expect(string).to.contain('baseprop="5"');
+            it ('should complain about incorrect markup', function () {
+                expect(function () {
+                    parse('<a');
+                }).to.throw(errors.DOMParserError);
+            });
         });
     });
 });

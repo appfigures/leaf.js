@@ -9,11 +9,21 @@ exports._$ = function (selector, context, root, options) {
     return cheerio(selector, context, root, options || this.options);
 };
 
+function isCommentNode(node) {
+    return node.type === 'comment';
+}
+function isEmptyTextNode(node) {
+    return node.type === 'text' && !(node.data + '').trim();
+}
+
 // Custom
 _.extend(exports, {
     isElement: function () {
         var type = this[0].type;
         return type === 'tag' || type === 'style';
+    },
+    isRoot: function () {
+        return this.length === 1 && this[0].type === 'root';
     },
     commentValue: function () {
         if (this[0].type === 'comment') {
@@ -39,6 +49,7 @@ _.extend(exports, {
         }
 
         return function (source) {
+            if (this.length <= 0) return;
             if (source === undefined) return this[0].leafSource;
             return this.each(function (i, el) {
                 setSource(el, source);
@@ -52,11 +63,20 @@ _.extend(exports, {
         _.forEach(this, fn);
         return this;
     },
+    isComment: function () {
+        return this.length > 0 && isCommentNode(this[0]);
+    },
+    isEmptyText: function () {
+        return this.length > 0 && isEmptyTextNode(this[0]);
+    },
     filterEmptyTextAndComments: function () {
         return this.filter(function (i, el) {
-            if (this.type === 'text' && !(this.data + '').trim()) return false;
-            if (this.type === 'comment') return false;
-
+            if (isCommentNode(el) ||
+                isEmptyTextNode(el))
+            {
+                return false;
+            }
+            
             return true;
         });
     },

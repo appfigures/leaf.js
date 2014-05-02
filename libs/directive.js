@@ -1,8 +1,7 @@
 var _ = require('lodash'),
     utils = require('./utils'),
     templates = require('./templates'),
-    errors = require('./errors'),
-    uid = 0;
+    errors = require('./errors');
 
 //
 // Directive
@@ -10,29 +9,36 @@ var _ = require('lodash'),
 
 function Directive (params) {
     _.extend(this, params);
-    // Create a unique id for templating
+    // Create a unique id for template caching
     // purposes since multiple directives
     // can have the same name
-    this.uid = uid++;
+    this.uid = utils.uid();
 }
 Directive.prototype = {
 
+    //
     // Options
+    //
 
     // Camel case name
     name: null,
-    // An xml string, a url, or a function
+
+    // A markup string (starts with <) or a file path
     template: null,
+
     // The default context hash
     // or a function that returns an object (parser) => {}
     context: null,
-    // IMPORTANT: source must be a file (not a directory)
+
     // Optional string specifying the url of
     // the file this directive is based on. This is used to
     // resolve any relative urls.
     // If the template is an external file, its path is used
     // unless a source is specified here.
+    //
+    // IMPORTANT: source must be a file (not a directory)
     source: null,
+
     // Optional options to pass to the mergeElements function
     mergeOptions: null,
 
@@ -42,8 +48,10 @@ Directive.prototype = {
 
     // Can modify context. Can return a promise
     prepare: function (context, originalElement) {/* empty */},
-    // Can return a promise
+
+    // Can return false to delete the element
     logic: function (el, context) {/* empty */},
+
     matches: function (el) {
         return this.matchesName(el);
     },
@@ -83,6 +91,9 @@ Directive.prototype = {
             if (element.length === 0) {
                 throw new errors.LeafDirectiveError('Directive template for ' + this.name + ' could not be parsed');
             }
+
+            // We need a single root element to merge the template
+            // with the matched element
             if (element.length > 1) {
                 throw new errors.LeafDirectiveError('Directive template for ' + this.name + ' must have just one root element (has ' + element.length + ')');
             }
@@ -96,7 +107,13 @@ Directive.prototype = {
         }
 
         return null;
-    }
+    },
+
+    //
+    // private
+    //
+
+    uid: null
 };
 
 // Returns a template function or a string to compile

@@ -5,6 +5,7 @@ var path = require('path'),
     cache = require('./cache'),
     toCamelCaseRegexp = /(\-[a-z])/g,
     toDashCaseRegexp = /([A-Z])/g,
+    uid = 0,
     utils;
 
 exports = module.exports = {
@@ -26,6 +27,12 @@ exports = module.exports = {
     isHtmlString: function (string) {
         if (typeof string !== 'string') return false;
         return string.charAt(0) === '<';
+    },
+    // Generates a unique id. Only unique relative
+    // to other calls to this method during the lifetime
+    // of the process.
+    uid: function () {
+        return uid++;
     },
     // Undercore's compose can't accept
     // arrays and it processes the list
@@ -124,7 +131,8 @@ exports = module.exports = {
         function loop(value, name) {
             var opFn, newValue;
 
-            // TODO: Expose this functionality
+            // This filtering functionality can
+            // be exposed if needed.
             if (name.indexOf('data-') === 0) return;
 
             // If there's a conflict, try to resolve it
@@ -164,9 +172,18 @@ exports = module.exports = {
         }
     };
 
-    // TODO: Does it make sense to pass in $? It's not used for
-    // parsing anything
-    function mergeElements (dst, src, $, options) {
+    function mergeElements (dst, src, options) {
+        // We require here to avoid cyclical
+        // dependencies
+        
+        var $ = require('./cheerio-leaf');
+        // Important:
+        // Since we're using the root cheerio object
+        // only use $ for wrapping dom elements, and
+        // not for creating new ones (since the options
+        // for creating a new one come from the current
+        // parse session).
+
         var contentPlaceholder,
             childrenFragment,
             cNode, nextNode;
@@ -191,7 +208,7 @@ exports = module.exports = {
     }
 
     mergeElements.defaults = {
-        contentTagName: 'content',
+        contentTagName: 'af-content',
         attributes: {}
     };
 
