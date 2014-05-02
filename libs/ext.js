@@ -1,7 +1,5 @@
+var _ = require('lodash');
+
 module.exports = {
-	DOMParser: null,
-	XMLSerializer: null,
-	templateCompiler: function (string) {
-        return function () { return string; };
-    },
+	templateCompiler: _.template
 };

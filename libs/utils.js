@@ -1,21 +1,18 @@
 var path = require('path'),
-    _ = require('underscore'),
+    _ = require('lodash'),
     findup = require('findup'),
     globals = require('./globals'),
     cache = require('./cache'),
-    trimRegexp = /^[\ \t\r\n]+|[\ \t\r\n]+$/ig,
     toCamelCaseRegexp = /(\-[a-z])/g,
     toDashCaseRegexp = /([A-Z])/g,
+    uid = 0,
     utils;
 
-utils = {
+exports = module.exports = {
     _: _,
     // My very rough version
     isArrayLike: function (obj) {
         return (obj instanceof Array) || (typeof obj !== 'string' && typeof obj.length === 'number');
-    },
-    trim: function (string) {
-        return string.replace(trimRegexp, '');
     },
     toDashCase: function (string, separator) {
         separator = separator || '-';
@@ -26,6 +23,32 @@ utils = {
     },
     toCamelCase: function (string) {
         return string.replace(toCamelCaseRegexp, function($1){return $1.toUpperCase().replace('-','');});
+    },
+    isHtmlString: function (string) {
+        if (typeof string !== 'string') return false;
+        return string.charAt(0) === '<';
+    },
+    // Generates a unique id. Only unique relative
+    // to other calls to this method during the lifetime
+    // of the process.
+    uid: function () {
+        return uid++;
+    },
+    // Undercore's compose can't accept
+    // arrays and it processes the list
+    // in reverse order
+    compose: function (fnList) {
+        return function () {
+            var len = fnList.length, i,
+                args = arguments,
+                out;
+            for (i = 0; i < len; ++i) {
+                out = fnList[i].apply(this, args);
+                if (out === undefined) out = args[0];
+                args = [out];
+            }
+            return args[0];
+        };
     },
     loadFile: function (path, cache) {
         var fileCache = cache.ns('leaf-files'),
@@ -79,4 +102,116 @@ utils = {
     }
 };
 
-module.exports = utils;
+// DOM utils
+
+(function () {
+    var combineAttributesRegexp = /\S+/gi;
+
+    function combineAttributes(dst, src) {
+        var value = dst || '',
+            values = [];
+
+        // Split on whitespace
+        value.replace(combineAttributesRegexp, function (value) {
+            values.push(value);
+        });
+
+        if (values.indexOf(src) >= 0) return;
+        values.push(src);
+        return values.join(' ');
+    }
+
+    // Merge all the src attributes into dst
+    // Ignore data-* attributes
+    // @param dst - DOMElement
+    // @param src - DOMElement | {attrName: value, ...}
+    function mergeAttributes (dst, src, options) {
+        options = _.extend({}, mergeAttributes.defaults, options);
+
+        function loop(value, name) {
+            var opFn, newValue;
+
+            // This filtering functionality can
+            // be exposed if needed.
+            if (name.indexOf('data-') === 0) return;
+
+            // If there's a conflict, try to resolve it
+            if (src.attribs ? name in src.attribs : name in src) {
+                // Find the right op to use
+                opFn = options.attributes[name] || options.attributes['*'];
+                if (typeof opFn === 'string') opFn = options.ops[opFn];
+                if (!_.isFunction(opFn)) throw 'mergeElements: Operation not defined: ' + options.attributes[name];
+
+                newValue = opFn(dst.attribs[name], value);
+            } else {
+                // Otherwise just copy the attribute over
+                newValue = value;
+            }
+
+            dst.attribs[name] = newValue;
+        }
+
+        if (src.type) {
+            _.forEach(src.attribs, function (value, name) {
+                return loop(value, name);
+            });
+        } else {
+            _.forEach(src, loop);
+        }
+    }
+
+    mergeAttributes.defaults = {
+        attributes: {
+            'class': 'combine',
+            '*': 'src'
+        },
+        ops: {
+            'src': function (dstValue, srcValue) { return srcValue; },
+            'dst': function (dstValue, srcValue) { return srcValue; },
+            'combine': combineAttributes
+        }
+    };
+
+    function mergeElements (dst, src, options) {
+        // We require here to avoid cyclical
+        // dependencies
+        
+        var $ = require('./cheerio-leaf');
+        // Important:
+        // Since we're using the root cheerio object
+        // only use $ for wrapping dom elements, and
+        // not for creating new ones (since the options
+        // for creating a new one come from the current
+        // parse session).
+
+        var contentPlaceholder,
+            childrenFragment,
+            cNode, nextNode;
+
+        options = _.extend({}, mergeElements.defaults, options);
+
+        // console.log('merge:', $(src).stringify(), '->', $(dst).stringify());
+        if (options.attributes) {
+            mergeAttributes(dst, src, options.attrs);
+        }
+
+        // Replace the contentPlaceholder with the children
+        childrenFragment = $(src.children);
+
+        contentPlaceholder = $(dst).find(options.contentTagName);
+
+        if (contentPlaceholder.length > 0) {
+            contentPlaceholder.replaceWith(childrenFragment);
+        } else {
+            $(dst).append(childrenFragment);
+        }
+    }
+
+    mergeElements.defaults = {
+        contentTagName: 'af-content',
+        attributes: {}
+    };
+
+    exports.mergeAttributes = mergeAttributes;
+    exports.mergeElements = mergeElements;
+}());
