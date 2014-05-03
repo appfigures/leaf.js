@@ -21,7 +21,8 @@ module.exports = function(grunt) {
                 options: {
                     reporter: 'spec',
                     require: ['chai', 'test/support/setup'],
-                    ui: 'bdd'
+                    ui: 'bdd',
+                    ignoreLeaks: false
                 },
                 src: ['test/**/*.js']
             }

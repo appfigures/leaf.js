@@ -68,6 +68,13 @@ describe ('directive', function () {
         expect(string).to.contain('baseprop="5"');
     });
 
+    it ('should transclude content', function () {
+        expect(parse('<directive>User content</directive>', function (session) {
+            session.directive('directive', '<div><af-content /></div>');
+        }))
+        .to.equal('<div>User content</div>');
+    });
+
     describe ('self removing directive', function () {
         function transform (session) {
             session.directive('tag', function (el) {

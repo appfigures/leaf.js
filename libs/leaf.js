@@ -3,6 +3,7 @@ var globals = require('./globals');
 module.exports = {
     // main method
     parse: require('./parse'),
+    cheerio: require('./cheerio-leaf'),
     // global modules
     modules: globals.modules,
     templates: require('./templates'),
@@ -10,8 +11,10 @@ module.exports = {
     Cache: require('./cache'),
     errors: require('./errors'),
     ext: require('./ext'),
-    debug: function (value) {
-        if (value === undefined) return globals.debug;
-        globals.debug = false;
+    inDebugMode: function () {
+        return globals.debug;
+    },
+    setDebugMode: function (value) {
+        globals.debug = value;
     }
 };

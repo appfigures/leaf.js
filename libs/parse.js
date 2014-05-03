@@ -392,9 +392,12 @@ function parse(input, transformFn, options) {
 
     root = utils.compose(session.transforms.pre)(root);
 
+    // The meat
     root = transformElement(root, session);
 
     root = utils.compose(session.transforms.post)(root);
+
+    // Make a string
     string = root.stringify(options.outputFormat);
 
     string = utils.compose(session.transforms.string)(string);

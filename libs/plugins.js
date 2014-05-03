@@ -32,7 +32,7 @@ _.extend(exports, {
         return '';
     },
     tagName: function () {
-        return this[0].name;
+        return this[0].name + '';
     },
     nodeType: function () {
         return this[0].type;
