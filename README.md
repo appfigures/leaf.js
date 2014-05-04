@@ -1,4 +1,4 @@
-leaf (alpha)
+leaf (beta)
 =======
 
 A tiny XML transformation library with recursive evaluation for Node. Useful for generating email html, among other things. Loosely inspired by the Angular.js interface.
@@ -55,15 +55,33 @@ Into this one:
 ## Getting started
 
 	npm instal leaf-af
-	
+
 Run this javascript:
 
 	var string = require('leaf').parse('<div />', function (session) {
 		session.directive('div', '<p>It worked!</p>');
 	});
-
 	console.log(string);
-	
+
+## How it works
+
+The 
+
+### The public API
+
+- `leaf.parse` The main method of the library. Has the signature
+	- `parse(input, options)` where input is either an html string or file path. Also has other helpers:
+		- `parse.file(filePath, options)`
+		- `parse.string(markupString, options)`
+- `leaf.cheerio` A reference to the local cheerio library.
+- `leaf.modules` All global modules
+- `leaf.templates` A collection of utility methods for loading and compiling templates (uses underscore be default).
+- `leaf.utils` A collection of utility methods. Leaf uses these and thought you might find them helpful too.
+	- Of note, `leaf.utils._` points to leaf's copy of lodash.
+- `leaf.Cache` A constructor function for the cache class. Can be used to create a custom cache and persist it across different calls to `parse()`.
+- `leaf.errors` A collection of error objects that this library throws.
+- `leaf.ext` External 
+
 ## Creating directives
 
 	parser.directive({
@@ -84,7 +102,7 @@ Run this javascript:
 		logic: (el, context) -> null
 			An optional method that can be used to modify the new element after it's been created, but before its children have been parsed.
 	});
-	
+
 ## Creating modules
 
 Let's say we have a file `file.html` that we'd like to transform:
@@ -128,9 +146,9 @@ Then in our code we can just write:
 	
 ## Using globals
 
-The session.globals object lets directives share values, and for modules to communicate.
+The `session.globals` object lets directives share values, and for modules to communicate.
 	
-	function (session) {
+	function module (session) {
 		// The globals object is shared by everyone
 		// so we namespace our variables to be good
 		// citizens.
@@ -146,11 +164,14 @@ The session.globals object lets directives share values, and for modules to comm
 				}
 			}
 		});
-	
-		// parse('<container />') => <table width="100"/>
-		// parse('<container width="300">') => <table width="300"/>
 	}
+	parse('<container />', module) // => <table width="100"/>
+	parse('<container width="300">', module) // => <table width="300"/>
 
 ## Known Issues
 
-cheerio's dom manipulation functions will throw errors when trying to manipulate the children of text/comment/etc elements.
+cheerio's dom manipulation functions will throw errors when trying to manipulate the children of text/comment/etc elements. This may affect new directives being written.
+
+## TODO
+
+- Use nunjucks instead of underscore templates?

@@ -1,6 +1,6 @@
 {
   "name": "leaf",
-  "version": "0.5.0",
+  "version": "1.0.0",
   "description": "A Tiny, Impreative XML Transformation Library",
   "main": "./libs/leaf.js",
   "repository": {
@@ -15,7 +15,9 @@
   },
   "keywords": [
     "xml",
-    "transformation"
+    "transformation",
+    "html",
+    "cheerio"
   ],
   "author": "appFigures",
   "license": "MIT",
@@ -23,7 +25,6 @@
     "cheerio": "^0.15.0",
     "findup": "~0.1.5",
     "lodash": "^2.4.1",
-    "q": "~1.0.0",
     "tea-error": "~0.1.0",
     "yargs": "^1.2.1"
   },
