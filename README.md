@@ -84,24 +84,37 @@ The
 
 ## Creating directives
 
-	parser.directive({
-		name: String
-			The name of the elements that should be replaced by this directive (camel-cased).
-		template: String
-			An html string or filePath. Will be compiled by lodash.template by default.
-		context: Object
-			The default context to evaluate the template with. Hash or a function (parser) => context. This hash gets extended with the paramaters passed into the directive via its matching element's tag attributes.
-		source: String
-			The base patch to evaluate template assets with. If 'template' is a url this value is calculated from it, but can still be overriden by 'source'.
-		mergeOptions: Object
-			Define how this directive should be merged with the dom element it replaces.
-		matches: (element) -> boolean
-			An optional function to test if an element matches this directive. If false is returned, the directive is ignored by the parser for that element.
-		prepare: (context, originalElement) -> object
-			An optional method that can be used to modify the context based on the original element that matched this directive. At this point the element parameters have already been merged into the default context to form 'context'.
-		logic: (el, context) -> null
-			An optional method that can be used to modify the new element after it's been created, but before its children have been parsed.
+For every call to `leaf.parse` a new `ParseSession` object is created. Directives are added to the this object. The `session` is passed into a module function prior to parsing. At that point directives can be added to the session. Example:
+
+	leaf.parse('...', function (session) {
+		session.directive(name, options);
 	});
+
+### session.directive(name, options | template)
+
+#### name
+
+A camel-cased name. When using the directive the name can be specified as either `-` cased or `_` cased. For example if you name your directive `'myDirective'` it can either be used like this:
+
+	<my-directive>
+
+Or
+
+	<my_directive>
+
+#### options
+
+- `template: String` An html string or file path. Will be compiled by lodash.template by default. Default template compiler can be set via `leaf.ext.templateCompiler`.
+- `context: Object`	The default context to evaluate the template with. Can be `{...}` or a function `(globals) => context`. The resulting object gets extended with the parameters passed into the directive via its matching element's tag attributes.
+- `source: String` The base path to evaluate template assets with. If `template` is a url and this value isn't defined, it serves as the source.
+- `mergeOptions: Object`
+Define how this directive should be merged with the dom element it replaces. These options are passed to `leaf.utils.mergeElements()`.
+- `matches: Function(element) -> boolean`
+An optional function to test if an element matches this directive. If false is returned, the directive is ignored by the parser for that element. Note that overriding this function prevents the default behavior from happening. To bring that back, call `return this.matchesName(element)` in your implementation.
+- `prepare: Function(context, originalElement) -> object`
+An optional method that can be used to modify the context based on the original element that matched this directive. At this point the element parameters have already been merged into the default context to form 'context'.
+- `logic: Function(el, context) -> void`
+An optional method that can be used to modify the new element after it's been created, but before its children have been parsed.
 
 ## Creating modules
 
