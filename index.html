@@ -28,37 +28,330 @@
         </ul>
       </header>
       <section>
-        <h3>
-<a name="welcome-to-github-pages" class="anchor" href="#welcome-to-github-pages"><span class="octicon octicon-link"></span></a>Welcome to GitHub Pages.</h3>
+        <h1>
+<a name="leaf-beta" class="anchor" href="#leaf-beta"><span class="octicon octicon-link"></span></a>leaf (beta)</h1>
 
-<p>This automatic page generator is the easiest way to create beautiful pages for all of your projects. Author your page content here using GitHub Flavored Markdown, select a template crafted by a designer, and publish. After your page is generated, you can check out the new branch:</p>
+<p>A tiny XML transformation library with recursive evaluation for Node. Useful for generating email html, among other things. Loosely inspired by the Angular.js interface.</p>
 
-<pre><code>$ cd your_repo_root/repo_name
-$ git fetch origin
-$ git checkout gh-pages
+<h2>
+<a name="command-line-interface" class="anchor" href="#command-line-interface"><span class="octicon octicon-link"></span></a>Command line interface</h2>
+
+<pre><code>leaf input [options]
 </code></pre>
 
-<p>If you're using the GitHub for Mac, simply sync your repository and you'll see the new branch.</p>
+<p>Input can either be a file path or a markup string.</p>
+
+<h2>
+<a name="example" class="anchor" href="#example"><span class="octicon octicon-link"></span></a>Example</h2>
+
+<p>Let's turn this markup (xml or html):</p>
+
+<pre><code>&lt;person data-title="Mr."&gt;Potter&lt;/person&gt;
+</code></pre>
+
+<p>Into this one:</p>
+
+<pre><code>&lt;h1 class="person-header"&gt;Hi Mr.Potter&lt;/h1&gt;
+</code></pre>
 
 <h3>
-<a name="designer-templates" class="anchor" href="#designer-templates"><span class="octicon octicon-link"></span></a>Designer Templates</h3>
+<a name="code" class="anchor" href="#code"><span class="octicon octicon-link"></span></a>Code</h3>
 
-<p>We've crafted some handsome templates for you to use. Go ahead and continue to layouts to browse through them. You can easily go back to edit your page before publishing. After publishing your page, you can revisit the page generator and switch to another theme. Your Page content will be preserved if it remained markdown format.</p>
+<p><em>index.html</em></p>
+
+<pre><code>&lt;person data-title="Mr."&gt;Potter&lt;/person&gt;
+</code></pre>
+
+<p><em>directive.html</em></p>
+
+<pre><code>&lt;h1 class="person-header"&gt;Hi &lt;%= title %&gt;&lt;content /&gt;&lt;/h1&gt;
+</code></pre>
+
+<p><em>Run this code</em></p>
+
+<pre><code>var leaf = require('leaf');
+
+function module (session) {
+    session.directive('person', {
+        template: 'directive.html'
+    });
+}
+
+console.log(leaf.parse('index.html', module));
+</code></pre>
+
+<h2>
+<a name="features" class="anchor" href="#features"><span class="octicon octicon-link"></span></a>Features</h2>
+
+<ul>
+<li>Recursive template expansion</li>
+<li>Smart tag merging</li>
+<li>Define custom element logic imperatively</li>
+<li>Completely syncronous parsing</li>
+<li>Extendible through modules</li>
+<li>Includes basic DOM manipulation with jQuery-like API (with cheerio.js)</li>
+<li>Output as XML, HTML or plain text (TBD)</li>
+<li>Use as node module or command line utility</li>
+</ul><h2>
+<a name="getting-started" class="anchor" href="#getting-started"><span class="octicon octicon-link"></span></a>Getting started</h2>
+
+<pre><code>npm instal leaf-af
+</code></pre>
+
+<p>Run this javascript:</p>
+
+<pre><code>var string = require('leaf').parse('&lt;div /&gt;', function (session) {
+    session.directive('div', '&lt;p&gt;It worked!&lt;/p&gt;');
+});
+console.log(string);
+</code></pre>
+
+<h2>
+<a name="how-it-works" class="anchor" href="#how-it-works"><span class="octicon octicon-link"></span></a>How it works</h2>
+
+<p>Leaf reads in xml, transforms all of its nodes based on defined directives, applies optional user-defined transformations on them, then returns a stringified version of the resulting dom. It's recursive, meaning it'll keep transforming nodes until none of them match any of its directives.</p>
+
+<h2>
+<a name="the-public-api" class="anchor" href="#the-public-api"><span class="octicon octicon-link"></span></a>The public API</h2>
+
+<ul>
+<li>
+<code>leaf.parse(input, options)</code> The main method of the library.</li>
+<li>
+<code>leaf.cheerio</code> A reference to the local cheerio library.</li>
+<li>
+<code>leaf.modules</code> All global modules</li>
+<li>
+<code>leaf.templates</code> A collection of utility methods for loading and compiling templates (uses underscore be default).</li>
+<li>
+<code>leaf.utils</code> A collection of utility methods. Leaf uses these and thought you might find them helpful too.
+
+<ul>
+<li>Of note, <code>leaf.utils._</code> points to leaf's copy of lodash.</li>
+</ul>
+</li>
+<li>
+<code>leaf.Cache</code> A constructor function for the cache class. Can be used to create a custom cache and persist it across different calls to <code>parse()</code>.</li>
+<li>
+<code>leaf.errors</code> A collection of error objects that this library throws.</li>
+<li>
+<code>leaf.ext</code> External </li>
+</ul><h2>
+<a name="parsing-xml" class="anchor" href="#parsing-xml"><span class="octicon octicon-link"></span></a>Parsing xml</h2>
+
+<p>Parsing is a synchronous operation. It's done through the static function <code>leaf.parse</code>.</p>
 
 <h3>
-<a name="rather-drive-stick" class="anchor" href="#rather-drive-stick"><span class="octicon octicon-link"></span></a>Rather Drive Stick?</h3>
+<a name="leafparseinput-options" class="anchor" href="#leafparseinput-options"><span class="octicon octicon-link"></span></a>leaf.parse(input, options)</h3>
 
-<p>If you prefer to not use the automatic generator, push a branch named <code>gh-pages</code> to your repository to create a page manually. In addition to supporting regular HTML content, GitHub Pages support Jekyll, a simple, blog aware static site generator written by our own Tom Preston-Werner. Jekyll makes it easy to create site-wide headers and footers without having to copy them across every page. It also offers intelligent blog support and other advanced templating features.</p>
+<ul>
+<li>
+<code>input</code> Either an xml string, a file path, or a dom element (via cheerio).
+
+<ul>
+<li>Leaf uses <code>leaf.utils.isHtmlString</code> to figure out if the input is a path or markup.</li>
+<li>The input xml must be valid (as defined by cheerio) and have a single root node.</li>
+</ul>
+</li>
+<li>
+<code>options</code> Either an object or a transform function. The important params are listed below (all optional). For the full docs see <a href="libs/parse.js">libs/parse.js</a>
+
+<ul>
+<li>
+<code>modules: Object</code> The underlying implementations for modules that the input may require. Has the format (<code>{ 'moduleName': moduleFn, ...}</code>).</li>
+<li>
+<code>transform: Function (session) -&gt; void</code> Allows you to mess with the session object (to add directives, change globals, etc.) before the rendering starts.</li>
+<li>
+<code>cache: Cache</code> Leaf tries to cache as much as possible during a parse. Pass your own <code>leaf.Cache</code> instance if you'd like to persist the cache across multiple calls to <code>parse()</code>. It provides a great speed improvement when parsing similar input multiple times. If you're interested in what exactly gets cache, pass in your own object and call <code>.toString() / .size()</code> on it after a parse operation.</li>
+<li>
+<code>outputFormat: String</code> Either <code>'xml'</code> or <code>'html'</code> (default: <code>'xml'</code>).</li>
+</ul>
+</li>
+</ul><p>This method has two helper versions. Use these if leaf can't properly figure out what type of input you're passing it.</p>
+
+<ul>
+<li><code>parse.file(filePath, options)</code></li>
+<li><code>parse.string(markupString, options)</code></li>
+</ul><h2>
+<a name="creating-directives" class="anchor" href="#creating-directives"><span class="octicon octicon-link"></span></a>Creating directives</h2>
+
+<p>For every call to <code>leaf.parse</code> a new <code>ParseSession</code> object is created. Directives are added to the this object. The <code>session</code> is passed into a module function prior to parsing. At that point directives can be added to the session. Example:</p>
+
+<pre><code>leaf.parse('...', function (session) {
+    session.directive(name, options);
+});
+</code></pre>
 
 <h3>
-<a name="authors-and-contributors" class="anchor" href="#authors-and-contributors"><span class="octicon octicon-link"></span></a>Authors and Contributors</h3>
+<a name="sessiondirectivename-options--template" class="anchor" href="#sessiondirectivename-options--template"><span class="octicon octicon-link"></span></a>session.directive(name, options | template)</h3>
 
-<p>You can <a href="https://github.com/blog/821" class="user-mention">@mention</a> a GitHub username to generate a link to their profile. The resulting <code>&lt;a&gt;</code> element will link to the contributor's GitHub Profile. For example: In 2007, Chris Wanstrath (<a href="https://github.com/defunkt" class="user-mention">@defunkt</a>), PJ Hyett (<a href="https://github.com/pjhyett" class="user-mention">@pjhyett</a>), and Tom Preston-Werner (<a href="https://github.com/mojombo" class="user-mention">@mojombo</a>) founded GitHub.</p>
+<h4>
+<a name="name" class="anchor" href="#name"><span class="octicon octicon-link"></span></a>name</h4>
+
+<p>A camel-cased name. When using the directive the name can be specified as either <code>-</code> cased or <code>_</code> cased. For example if you name your directive <code>'myDirective'</code> it can either be used like this:</p>
+
+<pre><code>&lt;my-directive&gt;
+</code></pre>
+
+<p>Or</p>
+
+<pre><code>&lt;my_directive&gt;
+</code></pre>
+
+<h4>
+<a name="options" class="anchor" href="#options"><span class="octicon octicon-link"></span></a>options</h4>
+
+<ul>
+<li>
+<code>template: String</code> An html string or file path. Will be compiled by lodash.template by default. Default template compiler can be set via <code>leaf.ext.templateCompiler</code>.</li>
+<li>
+<code>context: Object</code> The default context to evaluate the template with. Can be <code>{...}</code> or a function <code>(globals) =&gt; context</code>. The resulting object gets extended with the dom element's attributes.</li>
+<li>
+<code>source: String</code> The base path to evaluate template assets with. If <code>template</code> is a url and this value isn't defined, it serves as the source.</li>
+<li>
+<code>mergeOptions: Object</code>
+Define how this directive should be merged with the dom element it replaces. These options are passed to <code>leaf.utils.mergeElements()</code>.</li>
+<li>
+<code>matches: Function(element) -&gt; boolean</code>
+An optional function to test if an element matches this directive. If false is returned, the directive is ignored by the parser for that element. Note that overriding this function prevents the default behavior from happening. To bring that back, call <code>return this.matchesName(element)</code> in your implementation.</li>
+<li>
+<code>prepare: Function(context, originalElement) -&gt; object</code>
+An optional method that can be used to modify the context based on the original element that matched this directive. At this point the element parameters have already been merged into the default context to form 'context'.</li>
+<li>
+<code>logic: Function(el, context) -&gt; void</code>
+An optional method that can be used to modify the new element after it's been created, but before its children have been parsed.</li>
+</ul><h3>
+<a name="directive-attribute-passing" class="anchor" href="#directive-attribute-passing"><span class="octicon octicon-link"></span></a>Directive attribute passing</h3>
+
+<p>Let's say we make a directive called <code>myDirective</code> with a template <code>&lt;div /&gt;</code> and then in our template write:</p>
+
+<pre><code>&lt;my-directive some-attr="100" data-other-attr="true" /&gt;
+</code></pre>
+
+<p>When our directive gets called, it's context will look like this:</p>
+
+<pre><code>{
+    attr: 100,
+    otherAttr: true
+}
+</code></pre>
+
+<p>and the resulting output will look like this:</p>
+
+<pre><code>&lt;div some-attr="1"/&gt;
+</code></pre>
+
+<p>Notice that:</p>
+
+<ul>
+<li>All original dom attributes that don't start with <code>data-</code> get merged into the resulting element.</li>
+<li>All the original dom attributes get parsed and merged to the directive's <code>context</code>, whether they start with <code>data-</code> or not.
+
+<ul>
+<li>Since all dom attributes are actually strings, leaf does its best to figure out the actual type. It can figure out <code>Number</code>, <code>Boolean</code>, and <code>String</code> values.</li>
+</ul>
+</li>
+</ul><h2>
+<a name="creating-modules" class="anchor" href="#creating-modules"><span class="octicon octicon-link"></span></a>Creating modules</h2>
+
+<p>A module defines a group of transformations and directives. To include a module, a template must provide a comment at the top </p>
+
+<p>Let's say we have a file <code>file.html</code> that we'd like to transform:</p>
+
+<pre><code>&lt;!-- modules: myModule --&gt;
+&lt;container&gt;
+    &lt;custom-tag data-x="hi" /&gt;
+    &lt;transform-me&gt;Hello&lt;/transform-me&gt;
+&lt;/container&gt;
+</code></pre>
+
+<p>We can see that it requires a module named <code>myModule</code>. We have two ways to
+provide it.</p>
 
 <h3>
-<a name="support-or-contact" class="anchor" href="#support-or-contact"><span class="octicon octicon-link"></span></a>Support or Contact</h3>
+<a name="the-quick-way" class="anchor" href="#the-quick-way"><span class="octicon octicon-link"></span></a>The quick way</h3>
 
-<p>Having trouble with Pages? Check out the documentation at <a href="http://help.github.com/pages">http://help.github.com/pages</a> or contact <a href="mailto:support@github.com">support@github.com</a> and we’ll help you sort it out.</p>
+<pre><code>var modules = {
+    'myModule': function (leaf) {
+        return function (session) {
+            // Mutate the session
+            // by adding directives, globals, etc.
+        }
+    },
+    'myOtherModule': ...
+}
+
+leaf.parse('file.html', { modules: modules });
+</code></pre>
+
+<h3>
+<a name="the-resuable-way" class="anchor" href="#the-resuable-way"><span class="octicon octicon-link"></span></a>The resuable way</h3>
+
+<p>We put a <code>leaf-modules.js</code> file somewhere up the folder hierarchy of <code>file.html</code>:</p>
+
+<pre><code>module.exports = {
+    'myModule': function (leaf) { ... },
+    'myOtherModule': require('./other-module.js')
+};
+</code></pre>
+
+<p>Then in our code we can just write:</p>
+
+<pre><code>leaf.parse('file.html')
+</code></pre>
+
+<h2>
+<a name="using-globals" class="anchor" href="#using-globals"><span class="octicon octicon-link"></span></a>Using globals</h2>
+
+<p>The <code>session.globals</code> object lets directives share values, and for modules to communicate.</p>
+
+<pre><code>function module (session) {
+    // The globals object is shared by everyone
+    // so we namespace our variables to be good
+    // citizens.
+    session.globals.myModule = {
+        containerWidth = 100
+    };
+
+    session.directive('container', {
+        template: '&lt;table width="{{width}}"/&gt;',
+        context: function (globals) {
+            return {
+                width: globals.myModule.containerWidth
+            }
+        }
+    });
+}
+parse('&lt;container /&gt;', module) // =&gt; &lt;table width="100"/&gt;
+parse('&lt;container width="300"&gt;', module) // =&gt; &lt;table width="300"/&gt;
+</code></pre>
+
+<h2>
+<a name="known-issues" class="anchor" href="#known-issues"><span class="octicon octicon-link"></span></a>Known Issues</h2>
+
+<ul>
+<li>There are currently some design issues that should be tightened up
+
+<ul>
+<li>The structure of a global module (in <code>leaf.modules</code>) is <code>function (session) {}</code> while the structure of a module that gets loaded from an external file is <code>function (leaf) { return function (session) {}; }</code>.</li>
+<li>When reading a leaf markup file
+
+<ul>
+<li>It's hard to tell which attributes are part of the directive, which are of one of the super directives, and which are for the underlying dom element.</li>
+<li>It's also hard to know when to use a <code>data-</code> attribute (doesn't get propagated to super) and when not to.</li>
+</ul>
+</li>
+<li>The style is stored across css, js, and html files. It makes it hard to track down what's going on and where to make changes.</li>
+<li>A module cannot require that another module be loaded. On the other hand, a module may attempt to use utils from another (eg. <code>session.module('someModule').util()</code>).
+
+<ul>
+<li>If modules were allowed to include other modules there could be unwanted side effects when the included module adds an unwanted transformation to the dom.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>cheerio's dom manipulation functions will throw errors when trying to manipulate the children of text/comment/etc elements. This may affect new directives being written.</li>
+</ul>
       </section>
       <footer>
         <p>This project is maintained by <a href="https://github.com/appfigures">appfigures</a></p>
