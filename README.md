@@ -148,17 +148,21 @@ When our directive gets called, it's context will look like this:
 
 and the resulting output will look like this:
 
-	<div some-attr="1"/>
+	<div some-attr="100"/>
 
 Notice that:
 
-- All original dom attributes that don't start with `data-` get merged into the resulting element.
-- All the original dom attributes get parsed and merged to the directive's `context`, whether they start with `data-` or not.
+- All original dom attributes that don't start with `data-` will show up in the transformed element.
+- All the original dom attributes get parsed and merged to the directive's `context` object, whether they start with `data-` or not.
 	- Since all dom attributes are actually strings, leaf does its best to figure out the actual type. It can figure out `Number`, `Boolean`, and `String` values.
 
-## Creating modules
+## Modules
 
-A module defines a group of transformations and directives. To include a module, a template must provide a comment at the top 
+A module defines a group of transformations and directives. To include a module, a template must provide a comment at the top of the form:
+
+	<!-- modules: moduleA, moduleB, etc -->
+
+### Creating modules
 
 Let's say we have a file `file.html` that we'd like to transform:
 
@@ -171,7 +175,7 @@ Let's say we have a file `file.html` that we'd like to transform:
 We can see that it requires a module named `myModule`. We have two ways to
 provide it.
 
-### The quick way
+#### The quick way
 
 	var modules = {
 		'myModule': function (leaf) {
@@ -184,8 +188,8 @@ provide it.
 	}
 	
 	leaf.parse('file.html', { modules: modules });
-	
-### The resuable way
+
+#### The resuable way
 
 We put a `leaf-modules.js` file somewhere up the folder hierarchy of `file.html`:
 
@@ -197,9 +201,8 @@ We put a `leaf-modules.js` file somewhere up the folder hierarchy of `file.html`
 Then in our code we can just write:
 
 	leaf.parse('file.html')
-	
-	
-## Using globals
+
+# Globals
 
 The `session.globals` object lets directives share values, and for modules to communicate.
 	
