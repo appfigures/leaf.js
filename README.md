@@ -231,6 +231,6 @@ The `session.globals` object lets directives share values, and for modules to co
 		- It's hard to tell which attributes are part of the directive, which are of one of the super directives, and which are for the underlying dom element.
 		- It's also hard to know when to use a `data-` attribute (doesn't get propagated to super) and when not to.
 	- The style is stored across css, js, and html files. It makes it hard to track down what's going on and where to make changes.
-	- A module cannot require that another module be loaded. On the other hand, a module may attempt to use utils from another.
+	- A module cannot require that another module be loaded. On the other hand, a module may attempt to use utils from another (eg. `session.module('someModule').util()`).
 		- If modules were allowed to include other modules there could be unwanted side effects when the included module adds an unwanted transformation to the dom.
 - cheerio's dom manipulation functions will throw errors when trying to manipulate the children of text/comment/etc elements. This may affect new directives being written.
