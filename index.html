@@ -238,23 +238,29 @@ An optional method that can be used to modify the new element after it's been cr
 
 <p>and the resulting output will look like this:</p>
 
-<pre><code>&lt;div some-attr="1"/&gt;
+<pre><code>&lt;div some-attr="100"/&gt;
 </code></pre>
 
 <p>Notice that:</p>
 
 <ul>
-<li>All original dom attributes that don't start with <code>data-</code> get merged into the resulting element.</li>
-<li>All the original dom attributes get parsed and merged to the directive's <code>context</code>, whether they start with <code>data-</code> or not.
+<li>All original dom attributes that don't start with <code>data-</code> will show up in the transformed element.</li>
+<li>All the original dom attributes get parsed and merged to the directive's <code>context</code> object, whether they start with <code>data-</code> or not.
 
 <ul>
 <li>Since all dom attributes are actually strings, leaf does its best to figure out the actual type. It can figure out <code>Number</code>, <code>Boolean</code>, and <code>String</code> values.</li>
 </ul>
 </li>
 </ul><h2>
-<a name="creating-modules" class="anchor" href="#creating-modules"><span class="octicon octicon-link"></span></a>Creating modules</h2>
+<a name="modules" class="anchor" href="#modules"><span class="octicon octicon-link"></span></a>Modules</h2>
 
-<p>A module defines a group of transformations and directives. To include a module, a template must provide a comment at the top </p>
+<p>A module defines a group of transformations and directives. To include a module, a template must provide a comment at the top of the form:</p>
+
+<pre><code>&lt;!-- modules: moduleA, moduleB, etc --&gt;
+</code></pre>
+
+<h3>
+<a name="creating-modules" class="anchor" href="#creating-modules"><span class="octicon octicon-link"></span></a>Creating modules</h3>
 
 <p>Let's say we have a file <code>file.html</code> that we'd like to transform:</p>
 
@@ -268,8 +274,8 @@ An optional method that can be used to modify the new element after it's been cr
 <p>We can see that it requires a module named <code>myModule</code>. We have two ways to
 provide it.</p>
 
-<h3>
-<a name="the-quick-way" class="anchor" href="#the-quick-way"><span class="octicon octicon-link"></span></a>The quick way</h3>
+<h4>
+<a name="the-quick-way" class="anchor" href="#the-quick-way"><span class="octicon octicon-link"></span></a>The quick way</h4>
 
 <pre><code>var modules = {
     'myModule': function (leaf) {
@@ -284,8 +290,8 @@ provide it.</p>
 leaf.parse('file.html', { modules: modules });
 </code></pre>
 
-<h3>
-<a name="the-resuable-way" class="anchor" href="#the-resuable-way"><span class="octicon octicon-link"></span></a>The resuable way</h3>
+<h4>
+<a name="the-resuable-way" class="anchor" href="#the-resuable-way"><span class="octicon octicon-link"></span></a>The resuable way</h4>
 
 <p>We put a <code>leaf-modules.js</code> file somewhere up the folder hierarchy of <code>file.html</code>:</p>
 
@@ -300,8 +306,8 @@ leaf.parse('file.html', { modules: modules });
 <pre><code>leaf.parse('file.html')
 </code></pre>
 
-<h2>
-<a name="using-globals" class="anchor" href="#using-globals"><span class="octicon octicon-link"></span></a>Using globals</h2>
+<h1>
+<a name="globals" class="anchor" href="#globals"><span class="octicon octicon-link"></span></a>Globals</h1>
 
 <p>The <code>session.globals</code> object lets directives share values, and for modules to communicate.</p>
 
