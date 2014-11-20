@@ -38,6 +38,7 @@ function ParseSession(modules) {
     this.globals = {};
     this.directives = [];
     this.modules = {};
+    this.loadedModules = {};
 
     // Initialize the modules
     if (modules) {
@@ -112,17 +113,6 @@ ParseSession.prototype = {
         this.directives.push(directive);
     },
 
-    // Retrieve a module from this session or
-    // leaf.modules. Can be used to share
-    // functionality across modules
-    module: function (name) {
-        var module = this.modules[name] || globals.modules[name];
-        if (!module) {
-            throw new errors.LeafParseError('Module \'' + name + '\' was not found. Make sure it exists in options.modules, a local leaf-modules.js file, or the global leaf.modules object.');
-        }
-        return module;
-    },
-
     //
     // private
     //
@@ -133,7 +123,66 @@ ParseSession.prototype = {
     // All modules defined for this session.
     // {name -> moduleFn}
     // See top of file for module fn structure
-    modules: null
+    modules: null,
+
+    // Map {moduleName -> true} of modules
+    // that have been loaded into this session.
+    // Loading a module means loading its
+    // dependencies and calling its function.
+    loadedModules: null,
+
+    // Grabs a module using this.getModuleFactory()
+    // and loads it (aka calls it with (session)).
+    // Also loads required modules
+    loadModule: function (moduleName, parentModule, i) {
+        var moduleFn, requiredModules, args, that = this;
+
+        if (i > 10) {
+            throw new errors.LeafParseError('Cyclical dependency error around module \'' + moduleName + '\'');
+        } else {
+            i = i || 0;
+        }
+
+        // Check if it already is loaded
+        moduleFn = this.loadedModules[moduleName];
+        if (moduleFn) {
+            return moduleFn;
+        }
+
+        moduleFn = this.getModuleFactory(moduleName);
+        if (!moduleFn) {
+            throw new errors.LeafParseError('Module \'' + moduleName + '\'' + (parentModule ? ' (required by \'' + parentModule + '\')' : '') + ' was not found. Make sure it exists in options.modules, a local leaf-modules.js file, or the global leaf.modules object.');
+        }
+
+        requiredModules = moduleFn.requires;
+        if (requiredModules) {
+            requiredModules = _.map(requiredModules, function (requiredModuleName) {
+                // Try to load the module
+                return that.loadModule(requiredModuleName, moduleName, i + 1);
+            });
+        }
+
+        // Inject the required modules into
+        // the arguments
+
+        args = [this];
+
+        if (requiredModules) {
+            args = args.concat(requiredModules);
+        }
+
+        moduleFn.apply(moduleFn, args);
+
+        this.loadedModules[moduleName] = moduleFn;
+        return moduleFn;
+    },
+
+    // Retrieve a module from this session or
+    // leaf.modules. Can be used to share
+    // functionality across modules
+    getModuleFactory: function (name) {
+        return this.modules[name] || globals.modules[name];
+    }
 };
 
 // Parser internals
@@ -268,34 +317,6 @@ function getTagNames(els) {
     }).join(',');
 }
 
-// the modules must be available in the session
-// already.
-function loadModulesIntoSession(moduleNames, session) {
-    var factoryFns = {};
-
-
-
-    // Gather up all the modules and their requirements.
-    moduleNames.forEach(function (moduleName) {
-        var factoryFn = session.module(moduleName);
-        factoryFns[moduleName] = factoryFn;
-
-        // Let the module define requirements.
-        _.each(factoryFn.requires, function (requiredModuleName) {
-            var fn;
-            try {
-                fn = factoryFns[requiredModuleName] = session.module(requiredModuleName);
-            } catch (e) {
-                throw new errors.LeafParseError('Module \'' + requiredModuleName + '\' (required by \'' + moduleName + '\') was not found. Make sure it exists in options.modules, a local leaf-modules.js file, or the global leaf.modules object.');
-            }
-        });
-    });
-
-    _.each(factoryFns, function (fn) {
-        fn(session);
-    });
-}
-
 /**
  * parse(input [, transformFn] [, options])
  *
@@ -410,7 +431,9 @@ function parse(input, transformFn, options) {
     session.$ = $;
 
     // Load all the modules
-    loadModulesIntoSession(templateModules, session);
+    _.each(templateModules, function (moduleName) {
+        session.loadModule(moduleName);
+    });
 
     // Execute the optional callback
     if (options.transform) options.transform(session);

@@ -244,13 +244,57 @@ describe ('parse', function () {
                     moduleB: function (leaf) { return spy; }
                 };
 
-            modules.moduleA.oz = ['moduleB'];
-
             parse(str, {
                 modules: modules
             });
 
             expect(spy).to.have.been.calledOnce;
+        });
+
+        it ('should inject required modules', function () {
+            var str = '<!-- modules: moduleA --><div />',
+                aModule = sinon.spy(),
+                bModule = sinon.spy(),
+                modules = {
+                    moduleA: function (leaf) {
+                        aModule.requires = ['moduleB'];
+                        return aModule;
+                    },
+                    moduleB: function (leaf) { return bModule; }
+                };
+
+            parse(str, {
+                modules: modules
+            });
+
+            expect(bModule).to.have.been.calledOnce;
+            expect(aModule).to.have.been.calledWith(sinon.match.object, bModule);
+        });
+
+        it ('should inject a module even if it\'s already loaded', function () {
+            var str = '<!-- modules: a, b --><div />',
+                moduleA = sinon.spy(),
+                moduleB = sinon.spy(),
+                modules = {
+                    a: function () {
+                        return moduleA;
+                    },
+                    b: function () {
+                        moduleB.requires = ['a'];
+                        return moduleB;
+                    }
+                };
+
+            parse(str, {modules: modules});
+
+            expect(moduleA).to.have.been.calledOnce;
+            expect(moduleB).to.have.been.calledOnce;
+
+            expect(moduleB).to.have.been.calledWith(sinon.match.object, moduleA);
+        });
+
+        it ('should only execute a module the first time it is used', function () {
+
         });
 
         describe ('global modules', function () {
@@ -356,6 +400,28 @@ describe ('parse', function () {
                     });
                 }).to.throw(errors.LeafParseError, /salude.*hola.*not found/i);
             });
+
+            it ('should complain about a cyclical dependency', function () {
+
+                var modules = {
+                    a: function (leaf) {
+                        function module () {}
+                        module.requires = ['b'];
+                        return module;
+                    },
+                    b: function (lead) {
+                        function module () {};
+                        module.requires = ['a'];
+                        return module;
+                    }
+                }
+
+                expect(function () {
+                    parse('<!-- modules: a --><div />', {
+                        modules: modules
+                    });
+                }).to.throw(errors.LeafParseError, /cyclical/i);
+            })
 
             it ('should complain when a module factory isn\'t structured properly', function () {
                 expect(function () {
