@@ -232,6 +232,27 @@ describe ('parse', function () {
             expect(spy).to.have.been.calledOnce;
         });
 
+        it ('should allow modules to require other modules', function () {
+            var str = '<!-- modules: moduleA --><div />',
+                spy = sinon.spy(),
+                modules = {
+                    moduleA: function (leaf) {
+                        function module (session) {}
+                        module.requires = ['moduleB'];
+                        return module;
+                    },
+                    moduleB: function (leaf) { return spy; }
+                };
+
+            modules.moduleA.oz = ['moduleB'];
+
+            parse(str, {
+                modules: modules
+            });
+
+            expect(spy).to.have.been.calledOnce;
+        });
+
         describe ('global modules', function () {
             beforeEach(function () {
                 globals.modules.custom = function (session) {
@@ -316,7 +337,24 @@ describe ('parse', function () {
             it ('should complain when a module is not found', function () {
                 expect(function () {
                     parse('<!-- modules: moduleX --><div />');
-                }).to.throw(errors.LeafParseError, /not found.*moduleX/i);
+                }).to.throw(errors.LeafParseError, /moduleX.*not found/i);
+            });
+
+            it ('should complain when a required module is not found', function () {
+
+                var modules = {
+                    hola: function () {
+                        function module() {}
+                        module.requires = ['salude'];
+                        return module;
+                    }
+                };
+
+                expect(function () {
+                    parse('<!-- modules: hola --><div />', {
+                        modules: modules
+                    });
+                }).to.throw(errors.LeafParseError, /salude.*hola.*not found/i);
             });
 
             it ('should complain when a module factory isn\'t structured properly', function () {

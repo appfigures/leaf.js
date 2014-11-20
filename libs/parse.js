@@ -118,7 +118,7 @@ ParseSession.prototype = {
     module: function (name) {
         var module = this.modules[name] || globals.modules[name];
         if (!module) {
-            throw new errors.LeafParseError('Module \'' + name + '\' was not found. Make sure it exists in options.modules, a local leaf-modules.js file, or the global leaf.modules object.' + name);
+            throw new errors.LeafParseError('Module \'' + name + '\' was not found. Make sure it exists in options.modules, a local leaf-modules.js file, or the global leaf.modules object.');
         }
         return module;
     },
@@ -268,6 +268,34 @@ function getTagNames(els) {
     }).join(',');
 }
 
+// the modules must be available in the session
+// already.
+function loadModulesIntoSession(moduleNames, session) {
+    var factoryFns = {};
+
+
+
+    // Gather up all the modules and their requirements.
+    moduleNames.forEach(function (moduleName) {
+        var factoryFn = session.module(moduleName);
+        factoryFns[moduleName] = factoryFn;
+
+        // Let the module define requirements.
+        _.each(factoryFn.requires, function (requiredModuleName) {
+            var fn;
+            try {
+                fn = factoryFns[requiredModuleName] = session.module(requiredModuleName);
+            } catch (e) {
+                throw new errors.LeafParseError('Module \'' + requiredModuleName + '\' (required by \'' + moduleName + '\') was not found. Make sure it exists in options.modules, a local leaf-modules.js file, or the global leaf.modules object.');
+            }
+        });
+    });
+
+    _.each(factoryFns, function (fn) {
+        fn(session);
+    });
+}
+
 /**
  * parse(input [, transformFn] [, options])
  *
@@ -382,10 +410,7 @@ function parse(input, transformFn, options) {
     session.$ = $;
 
     // Load all the modules
-    templateModules.forEach(function (moduleName) {
-        var fn = session.module(moduleName);
-        fn(session);
-    });
+    loadModulesIntoSession(templateModules, session);
 
     // Execute the optional callback
     if (options.transform) options.transform(session);
