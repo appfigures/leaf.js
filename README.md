@@ -54,7 +54,7 @@ Into this one:
 
 ## Getting started
 
-	npm instal leaf-af
+	npm install leaf-af
 
 Run this javascript:
 
