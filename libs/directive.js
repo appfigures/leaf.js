@@ -86,6 +86,11 @@ Directive.prototype = {
             }
 
             element = template(context);
+            if (typeof element === 'string') { // It probably always is a string, I'm just not 100% sure right now.
+                // having a newline at the end of the file caused
+                // the 'just one root element' error below to fire.
+                element = element.trim()
+            }
             element = session.$(element);
 
             if (element.length === 0) {
