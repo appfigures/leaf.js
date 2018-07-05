@@ -22,7 +22,7 @@
   "author": "appFigures",
   "license": "MIT",
   "dependencies": {
-    "cheerio": "^0.15.0",
+    "cheerio": "0.15.0",
     "findup": "~0.1.5",
     "lodash": "^2.4.1",
     "tea-error": "~0.1.0",

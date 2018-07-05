@@ -359,6 +359,12 @@ function parse(input, transformFn, options) {
         transform: transformFn,
         cache: null,
         cheerioOptions: {
+            // NOTE:
+            // Cheerio started using htmlparser2.encodeXml in v 0.16.0 (now in v0.15.0)
+            // which doesn't recognize &nbsp; when xmlMode is true. The solution would be
+            // to not use xmlMode when parsing, but then other parts would stop working because
+            // of self-closing tags and things like that. For now I'm just staying in this version
+            // of cheerio.
             xmlMode: true
         },
         // xml | html (same as .stringify())
