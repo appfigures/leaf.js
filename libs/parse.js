@@ -24,6 +24,59 @@ function (leaf) {
 
 */
 
+/*
+The case for setting `decodeEntities` to `true`:
+ 
+When it's true we don't need to do any special logic in the
+'email' directive to unencode things if the subject was provided with nunjucks.
+
+For example, let's say we have this nunjucks template:
+```
+<email data-subject="{{ subject }}">...</email>
+```
+
+Where `context.subject` is the string `Let's get crazy <>`
+
+After running this through nunjucks we'll get:
+```
+<email data-subject="Let&apos;s get crazy &lt;&gt;"
+```
+
+So far so good, now we need leaf to parse it using cheerio.
+If this option was off cheerio parses atttributes by _encoding_
+special characters as html entities. That means our tag above would
+turn into:
+```
+el.attr('subject') == 'Let&amp;apos;s get crazy &amp;lt;&amp;gt;'
+```
+
+That's not good because now we need to double decode the value which
+is hacky and hard to maintain when passing data through multiple systems.
+
+Setting this option to `true` would give us:
+```
+el.attr('subject') == 'Let's get crazy <>'
+```
+
+NOTE: if this means that if we want to include text that can be interpreted as an html entity
+and we're not using nunjucks (like when the subject is static) we'd need to escape by hand. For example:
+
+Instead of:
+```
+<email data-subject="How about that &amp; entity, he?"
+```
+
+We'd need to do:
+```
+<email data-subject="How about that &amp;amp; entity, he?"
+// OR
+<email data-subject="How about that {{ '&amp;' }} entity, he?"
+```
+
+Other reasons this option makes sense:
+- It makes it possible for users to provide a quote in an attribute (using &quot;)
+- jQuery also behaves this way
+ */
 
 /**
     An object that lives for the lifetime
@@ -365,7 +418,16 @@ function parse(input, transformFn, options) {
             // to not use xmlMode when parsing, but then other parts would stop working because
             // of self-closing tags and things like that. For now I'm just staying in this version
             // of cheerio.
-            xmlMode: true
+            xmlMode: true,
+            /*
+            This option makes so that when a user provides an html
+            entity in an attribute, Cheerio will automatically decode it.
+            If it's not provided cheerio won't just leave it as is, it
+            would actually encode it, which makes it hard to interop with Nunjucks.
+
+            See "The case for setting decodeEntities to true" above for a full explanation.
+            */
+            decodeEntities: true
         },
         // xml | html (same as .stringify())
         outputFormat: 'xml'
