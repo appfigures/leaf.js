@@ -43,7 +43,7 @@ After running this through nunjucks we'll get:
 ```
 
 So far so good, now we need leaf to parse it using cheerio.
-If this option was off cheerio parses atttributes by _encoding_
+If this option was off cheerio parses attributes by _encoding_
 special characters as html entities. That means our tag above would
 turn into:
 ```
@@ -58,7 +58,7 @@ Setting this option to `true` would give us:
 el.attr('subject') == 'Let's get crazy <>'
 ```
 
-NOTE: if this means that if we want to include text that can be interpreted as an html entity
+NOTE: This means that if we want to include text that can be interpreted as an html entity
 and we're not using nunjucks (like when the subject is static) we'd need to escape by hand. For example:
 
 Instead of:
@@ -74,8 +74,9 @@ We'd need to do:
 ```
 
 Other reasons this option makes sense:
-- It makes it possible for users to provide a quote in an attribute (using &quot;)
-- jQuery also behaves this way
+- It makes it possible for users to provide a quote in an attribute (using &quot;). Without
+  this option there's really no way to escape a quote.
+- jQuery also behaves this way when parsing an html string.
  */
 
 /**
