@@ -297,153 +297,159 @@ describe ('parse', function () {
 
         });
 
-        describe ('global modules', function () {
-            beforeEach(function () {
-                globals.modules.custom = function (session) {
-                    session.directive('element', false);
-                };
-            });
-            afterEach(function () {
-                delete globals.modules.custom;
-            });
+        it ('should not decode HTML entities', () => {
+            // This is very important to prevent XSS.
+            var string = '<div>Test &lt;div&gt;</div>';
+            expect(parse(string)).to.equal(string);
+        })
+    });
 
-            it ('should read from global modules', function () {
-                expect(parse('<!-- modules: custom --><element />')).to.equal('');
-            });
+    describe ('global modules', function () {
+        beforeEach(function () {
+            globals.modules.custom = function (session) {
+                session.directive('element', false);
+            };
+        });
+        afterEach(function () {
+            delete globals.modules.custom;
         });
 
-        describe ('transforms', function () {
-            ['pre', 'post', 'string'].forEach(function (name) {
-                it ('should run ' + name + ' transforms in the correct order', function () {
-                    var tA = sinon.spy(_.identity),
-                        tB = sinon.spy(_.identity),
-                        tC = sinon.spy(_.identity);
+        it ('should read from global modules', function () {
+            expect(parse('<!-- modules: custom --><element />')).to.equal('');
+        });
+    });
 
-                    parse('<div />', function (session) {
-                        session.transforms[name].push(tA, tB, tC);
-                    });
+    describe ('transforms', function () {
+        ['pre', 'post', 'string'].forEach(function (name) {
+            it ('should run ' + name + ' transforms in the correct order', function () {
+                var tA = sinon.spy(_.identity),
+                    tB = sinon.spy(_.identity),
+                    tC = sinon.spy(_.identity);
 
-                    expect(tA).to.be.calledOnce;
-                    expect(tB).to.be.calledOnce;
-                    expect(tC).to.be.calledOnce;
-
-                    expect(tA).to.be.calledBefore(tB);
-                    expect(tB).to.be.calledBefore(tC);
-                });
-            });
-
-            it ('should allow for injecting pre transformations', function () {
                 parse('<div />', function (session) {
-                    session.directive('div', {
-                        template: '<span />',
-                        logic: function (el) {
-                            expect(el.hasAttr('name')).to.be.true;
-                        }
-                    });
-
-                    session.transforms.pre.push(function (element) {
-                        element.attr('name', 'oz');
-                    });
-                });
-            });
-
-            it ('should allow for injecting post transformations', function () {
-                var string = parse('<div />', function (session) {
-                    session.directive('div', {
-                        template: '<span />',
-                        logic: function (el) {
-                            expect(el.hasAttr('name')).to.be.false;
-                        }
-                    });
-
-                    session.transforms.post.push(function (element) {
-                        element.attr('name', 'oz');
-                    });
+                    session.transforms[name].push(tA, tB, tC);
                 });
 
-                expect(string).to.equal('<span name="oz"/>');
-            });
+                expect(tA).to.be.calledOnce;
+                expect(tB).to.be.calledOnce;
+                expect(tC).to.be.calledOnce;
 
-            it ('should allow for injecting string transformations', function () {
-                var out = parse('<div />', function (session) {
-                    session.transforms.string.push(function (string) {
-                        string = string.replace(/</g, '{');
-                        string = string.replace(/>/g, '}');
-                        return string;
-                    });
-                });
-
-                expect(out).to.equal('{div/}');
+                expect(tA).to.be.calledBefore(tB);
+                expect(tB).to.be.calledBefore(tC);
             });
         });
 
-        describe ('errors', function () {
-            it ('should complain when a module is not found', function () {
-                expect(function () {
-                    parse('<!-- modules: moduleX --><div />');
-                }).to.throw(errors.LeafParseError, /moduleX.*not found/i);
+        it ('should allow for injecting pre transformations', function () {
+            parse('<div />', function (session) {
+                session.directive('div', {
+                    template: '<span />',
+                    logic: function (el) {
+                        expect(el.hasAttr('name')).to.be.true;
+                    }
+                });
+
+                session.transforms.pre.push(function (element) {
+                    element.attr('name', 'oz');
+                });
+            });
+        });
+
+        it ('should allow for injecting post transformations', function () {
+            var string = parse('<div />', function (session) {
+                session.directive('div', {
+                    template: '<span />',
+                    logic: function (el) {
+                        expect(el.hasAttr('name')).to.be.false;
+                    }
+                });
+
+                session.transforms.post.push(function (element) {
+                    element.attr('name', 'oz');
+                });
             });
 
-            it ('should complain when a required module is not found', function () {
+            expect(string).to.equal('<span name="oz"/>');
+        });
 
-                var modules = {
-                    hola: function () {
-                        function module() {}
-                        module.requires = ['salude'];
-                        return module;
-                    }
-                };
-
-                expect(function () {
-                    parse('<!-- modules: hola --><div />', {
-                        modules: modules
-                    });
-                }).to.throw(errors.LeafParseError, /salude.*hola.*not found/i);
+        it ('should allow for injecting string transformations', function () {
+            var out = parse('<div />', function (session) {
+                session.transforms.string.push(function (string) {
+                    string = string.replace(/</g, '{');
+                    string = string.replace(/>/g, '}');
+                    return string;
+                });
             });
 
-            it ('should complain about a cyclical dependency', function () {
+            expect(out).to.equal('{div/}');
+        });
+    });
 
-                var modules = {
-                    a: function (leaf) {
-                        function module () {}
-                        module.requires = ['b'];
-                        return module;
-                    },
-                    b: function (lead) {
-                        function module () {};
-                        module.requires = ['a'];
-                        return module;
-                    }
+    describe ('errors', function () {
+        it ('should complain when a module is not found', function () {
+            expect(function () {
+                parse('<!-- modules: moduleX --><div />');
+            }).to.throw(errors.LeafParseError, /moduleX.*not found/i);
+        });
+
+        it ('should complain when a required module is not found', function () {
+
+            var modules = {
+                hola: function () {
+                    function module() {}
+                    module.requires = ['salude'];
+                    return module;
                 }
+            };
 
-                expect(function () {
-                    parse('<!-- modules: a --><div />', {
-                        modules: modules
-                    });
-                }).to.throw(errors.LeafParseError, /cyclical/i);
-            })
+            expect(function () {
+                parse('<!-- modules: hola --><div />', {
+                    modules: modules
+                });
+            }).to.throw(errors.LeafParseError, /salude.*hola.*not found/i);
+        });
 
-            it ('should complain when a module factory isn\'t structured properly', function () {
-                expect(function () {
-                    parse('<!-- modules: moduleX --><div />', {
-                        modules: {
-                            moduleX: function () { }
-                        }
-                    });
-                }).to.throw(errors.LeafParseError, /moduleX.*invalid type/i);
-            });
+        it ('should complain about a cyclical dependency', function () {
 
-            it ('should complain when there is more than one root element', function () {
-                expect(function () {
-                    parse('<div /><div />');
-                }).to.throw(errors.LeafParseError, /single root/i);
-            });
+            var modules = {
+                a: function (leaf) {
+                    function module () {}
+                    module.requires = ['b'];
+                    return module;
+                },
+                b: function (lead) {
+                    function module () {};
+                    module.requires = ['a'];
+                    return module;
+                }
+            }
 
-            it ('should complain about incorrect markup', function () {
-                expect(function () {
-                    parse('<a');
-                }).to.throw(errors.DOMParserError);
-            });
+            expect(function () {
+                parse('<!-- modules: a --><div />', {
+                    modules: modules
+                });
+            }).to.throw(errors.LeafParseError, /cyclical/i);
+        })
+
+        it ('should complain when a module factory isn\'t structured properly', function () {
+            expect(function () {
+                parse('<!-- modules: moduleX --><div />', {
+                    modules: {
+                        moduleX: function () { }
+                    }
+                });
+            }).to.throw(errors.LeafParseError, /moduleX.*invalid type/i);
+        });
+
+        it ('should complain when there is more than one root element', function () {
+            expect(function () {
+                parse('<div /><div />');
+            }).to.throw(errors.LeafParseError, /single root/i);
+        });
+
+        it ('should complain about incorrect markup', function () {
+            expect(function () {
+                parse('<a');
+            }).to.throw(errors.DOMParserError);
         });
     });
 });
