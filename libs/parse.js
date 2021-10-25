@@ -25,6 +25,9 @@ function (leaf) {
 */
 
 /*
+UPDATE: THIS IS NO LONGER TRUE, SEE BELOW FOR WHY
+WE SET decodeEntities TO false
+
 The case for setting `decodeEntities` to `true`:
  
 When it's true we don't need to do any special logic in the
@@ -78,6 +81,19 @@ Other reasons this option makes sense:
   this option there's really no way to escape a quote.
 - jQuery also behaves this way when parsing an html string.
  */
+
+/*
+The case for actually setting `decodeEntities` to `false`:
+
+The arguments above are all good but we missed one important thing:
+it allows for XSS attacks because it essentially undoes the escaping
+that Nunjucks does automatically. So we DEFINITELY want to always keep
+decodeEntities fo false.
+
+The only real issue when we do this is that the email subject winds up
+showing html entities. So the solution is to manually decode them in
+the email directive.
+*/
 
 /**
     An object that lives for the lifetime
@@ -428,7 +444,16 @@ function parse(input, transformFn, options) {
 
             See "The case for setting decodeEntities to true" above for a full explanation.
             */
-            decodeEntities: true
+            // decodeEntities: true
+
+            /*
+            NOTE: We now decided to set it back to false because otherwise it undoes
+            Nunjuck's automatic escaping of html entities.
+            
+            See "The case for actually setting decodeEntities to false" above for
+            a full explanation.
+            */
+            decodeEntities: false
         },
         // xml | html (same as .stringify())
         outputFormat: 'xml'
